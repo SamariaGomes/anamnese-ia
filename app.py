@@ -104,6 +104,12 @@ st.markdown(
         border-radius: 6px;
         box-shadow: 0 2px 6px rgba(0,0,0,0.1);
     }
+    .hero-subtitle {
+        font-size: 1.05rem;
+        color: #F3F0FF !important;
+        margin-top: 0.25rem;
+        font-weight: 500;
+    }
 
     /* Cards Brancos com Borda Roxa Fosca Suave */
     .spec-card, .level-card {
@@ -812,7 +818,7 @@ def abrir_modal_diagnostico(esp_atual, nivel_atual, dados_caso):
         enviar_diag = st.form_submit_button(
             "✅ Confirmar e Ver Nota do Preceptor",
             type="primary",
-            use_container_width=True,
+    _       use_container_width=True,
         )
 
     if enviar_diag:
@@ -865,7 +871,7 @@ def iniciar_consulta_com_nivel(especialidade, nivel):
 # TELA 1: SELEÇÃO DE ESPECIALIDADES
 # ==============================================================================
 if st.session_state.especialidade_ativa is None:
-    # Exibe o logotipo na barra lateral (verificando 'logotipo.jpg')
+    # Exibe o logotipo na barra lateral
     with st.sidebar:
         if os.path.exists("logotipo.jpg"):
             st.image("logotipo.jpg", use_container_width=True)
@@ -882,14 +888,14 @@ if st.session_state.especialidade_ativa is None:
             """
         )
 
-    # Exibe o logotipo junto com o título no Banner Principal com segurança (verificando 'logotipo.jpg')
+    # Exibe o logotipo junto com o título e a frase na cor branca no Banner Principal
     logo_html = ""
     if os.path.exists("logotipo.jpg"):
         import base64
         with open("logotipo.jpg", "rb") as f:
             data = f.read()
             encoded = base64.b64encode(data).decode()
-            logo_html = f'<img src="data:image/jpeg;base64,{encoded}" style="height: 50px; vertical-align: middle; margin-right: 12px; border-radius: 6px;">'
+            logo_html = f'<img src="data:image/jpeg;base64,{encoded}" style="height: 52px; vertical-align: middle; margin-right: 12px; border-radius: 6px;">'
 
     st.markdown(
         f"""
@@ -901,6 +907,9 @@ if st.session_state.especialidade_ativa is None:
             </div>
             <div class="hero-title">
                 {logo_html} Anamnes<span class="ia-strong">IA</span>
+            </div>
+            <div class="hero-subtitle">
+                Plataforma inteligente de simulação clínica para treinamento de anamnese e raciocínio médico.
             </div>
         </div>
         """,
