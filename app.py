@@ -104,12 +104,6 @@ st.markdown(
         border-radius: 6px;
         box-shadow: 0 2px 6px rgba(0,0,0,0.1);
     }
-    .hero-subtitle {
-        font-size: 0.98rem;
-        color: #FFFFFF !important;
-        opacity: 0.95;
-        margin: 0;
-    }
 
     /* Cards Brancos com Borda Roxa Fosca Suave */
     .spec-card, .level-card {
@@ -733,7 +727,7 @@ Retorne EXCLUSIVAMENTE um objeto JSON válido com estas exatas 5 chaves:
     try:
         resposta_bruta = gerar_resposta_ia(
             contents,
-            "Você é um professor de medicina especialista em simulação clínica OSCE. Responda apenas com JSON válido.",
+            "You are a medical professor expert in OSCE clinical simulation. Respond only with valid JSON.",
             temperatura=0.85,
             json_mode=True,
         )
@@ -871,10 +865,10 @@ def iniciar_consulta_com_nivel(especialidade, nivel):
 # TELA 1: SELEÇÃO DE ESPECIALIDADES
 # ==============================================================================
 if st.session_state.especialidade_ativa is None:
-    # Exibe o logotipo na barra lateral
+    # Exibe o logotipo na barra lateral (verificando 'logotipo.jpg')
     with st.sidebar:
-        if os.path.exists("logo.png"):
-            st.image("logo.png", use_container_width=True)
+        if os.path.exists("logotipo.jpg"):
+            st.image("logotipo.jpg", use_container_width=True)
         else:
             st.markdown("## 🧠 AnamnesIA")
         st.caption("Guia Rápido de Anamnese")
@@ -888,14 +882,14 @@ if st.session_state.especialidade_ativa is None:
             """
         )
 
-    # Exibe o logotipo junto com o título no Banner Principal
+    # Exibe o logotipo junto com o título no Banner Principal com segurança (verificando 'logotipo.jpg')
     logo_html = ""
-    if os.path.exists("logo.png"):
+    if os.path.exists("logotipo.jpg"):
         import base64
-        with open("logo.png", "rb") as f:
+        with open("logotipo.jpg", "rb") as f:
             data = f.read()
             encoded = base64.b64encode(data).decode()
-            logo_html = f'<img src="data:image/png;base64,{encoded}" style="height: 55px; vertical-align: middle; margin-right: 12px; border-radius: 8px;">'
+            logo_html = f'<img src="data:image/jpeg;base64,{encoded}" style="height: 50px; vertical-align: middle; margin-right: 12px; border-radius: 6px;">'
 
     st.markdown(
         f"""
@@ -908,9 +902,6 @@ if st.session_state.especialidade_ativa is None:
             <div class="hero-title">
                 {logo_html} Anamnes<span class="ia-strong">IA</span>
             </div>
-            <p class="hero-subtitle">
-                
-            </p>
         </div>
         """,
         unsafe_allow_html=True,
@@ -973,8 +964,8 @@ elif st.session_state.nivel_ativo is None:
     info_esp = ESPECIALIDADES[esp_atual]
 
     with st.sidebar:
-        if os.path.exists("logo.png"):
-            st.image("logo.png", use_container_width=True)
+        if os.path.exists("logotipo.jpg"):
+            st.image("logotipo.jpg", use_container_width=True)
         else:
             st.markdown("## 🧠 AnamnesIA")
         st.caption("Guia Rápido de Anamnese")
@@ -993,9 +984,6 @@ elif st.session_state.nivel_ativo is None:
             <div class="hero-title" style="font-size: 1.75rem;">
                 2️⃣ Selecione o Nível da <span class="ia-strong">Anamnese</span>
             </div>
-            <p class="hero-subtitle">
-                
-            </p>
         </div>
         """,
         unsafe_allow_html=True,
@@ -1034,8 +1022,8 @@ else:
     dados_caso = st.session_state.caso_atual
 
     with st.sidebar:
-        if os.path.exists("logo.png"):
-            st.image("logo.png", use_container_width=True)
+        if os.path.exists("logotipo.jpg"):
+            st.image("logotipo.jpg", use_container_width=True)
         else:
             st.markdown("## 🧠 AnamnesIA")
         st.caption("Guia Rápido de Anamnese")
@@ -1086,9 +1074,6 @@ else:
                 <span class="hero-badge">🧑 PACIENTE: {dados_caso['paciente'].upper()}</span>
             </div>
             <div class="hero-title" style="font-size: 1.6rem;">{dados_caso.get('titulo_caso', 'Consultório Virtual — AnamnesIA')}</div>
-            <p class="hero-subtitle">
-                
-            </p>
         </div>
         """,
         unsafe_allow_html=True,
