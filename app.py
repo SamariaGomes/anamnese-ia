@@ -534,7 +534,7 @@ ESPECIALIDADES = {
             "paciente": "Antônio, 67 anos (filha: Paula)",
             "primeira_fala": "Doutor(a), corre aqui! Meu pai tava tomando café agora há pouco e do nada a boca dele entortou e ele não consegue mexer o braço direito!",
             "prompt_sistema": (
-                "You are Paula, filha de Antônio (67 anos). "
+                "Você é Paula, filha de Antônio (67 anos). "
                 "Queixa: início súbito há 40 minutos de desvio de rima labial, disartria e hemiparesia direita. "
                 "Detalhes (só revele se perguntado): tem fibrilação atrial e parou a rivaroxabana há 1 semana; sem trauma craniano. "
                 "REGRAS: Responda em urgência. Só revele o tempo exato (40 min) e suspensão do anticoagulante se perguntada."
@@ -854,10 +854,11 @@ if "messages" not in st.session_state:
     st.session_state.messages = []
 if "parecer_preceptor" not in st.session_state:
     st.session_state.parecer_preceptor = None
+if "pagina_atual" not in st.session_state:
+    st.session_state.pagina_atual = "Simulador"
 
 
 def iniciar_consulta_com_nivel_com_temporizador(especialidade, nivel):
-    # Caixa de aviso bonita com barra de progresso simulando o tempo de geração (aprox 5 segundos)
     placeholder_status = st.empty()
     barra_progresso = st.progress(0)
     
@@ -871,9 +872,8 @@ def iniciar_consulta_com_nivel_com_temporizador(especialidade, nivel):
     for texto, progresso in etapas:
         placeholder_status.info(f"{texto} (Aprox. {max(1, int(5 * (1 - progresso/100)))}s restantes)")
         barra_progresso.progress(progresso)
-        time.sleep(1.2) # Pausa suave para dar tempo de leitura ao usuário
+        time.sleep(1.2)
         
-    # Executa a geração real do caso pela IA
     caso = criar_caso_por_nivel(especialidade, nivel)
     
     placeholder_status.empty()
@@ -891,7 +891,7 @@ def iniciar_consulta_com_nivel_com_temporizador(especialidade, nivel):
 
 
 # ==============================================================================
-# MENU LATERAL COM NAVEGAÇÃO DE PÁGINAS (Incluindo Sugestões)
+# MENU LATERAL COM BOTÕES DE DESTAQUE (Fácil identificação)
 # ==============================================================================
 with st.sidebar:
     if os.path.exists("logotipo.jpg"):
@@ -901,11 +901,15 @@ with st.sidebar:
     st.caption("Guia Rápido de Anamnese")
     
     st.markdown("---")
-    pagina_selecionada = st.radio(
-        "Navegação",
-        ["🩺 Simulador Clínico", "💡 Enviar Sugestão / Feedback"],
-        label_visibility="collapsed"
-    )
+    
+    # Botões de navegação bem aparentes e fáceis de identificar
+    if st.button("🩺 Ir para o Simulador Clínico", type="primary" if st.session_state.pagina_atual == "Simulador" else "secondary", use_container_width=True):
+        st.session_state.pagina_atual = "Simulador"
+        st.rerun()
+        
+    if st.button("💡 Enviar Sugestão / Feedback", type="primary" if st.session_state.pagina_atual == "Sugestoes" else "secondary", use_container_width=True):
+        st.session_state.pagina_atual = "Sugestoes"
+        st.rerun()
     
     st.markdown("---")
     st.markdown(
@@ -920,9 +924,9 @@ with st.sidebar:
 
 
 # ==============================================================================
-# TELA DE SUGESTÕES / FEEDBACK (Integrada com Formspree)
+# TELA DE SUGESTÕES / FEEDBACK
 # ==============================================================================
-if pagina_selecionada == "💡 Enviar Sugestão / Feedback":
+if st.session_state.pagina_atual == "Sugestoes":
     st.markdown(
         """
         <div class="hero-banner">
@@ -1103,7 +1107,6 @@ elif st.session_state.nivel_ativo is None:
                 type="primary",
                 use_container_width=True,
             ):
-                # Executa com a barra de progresso e temporizador visual
                 iniciar_consulta_com_nivel_com_temporizador(esp_atual, chave_nivel)
                 st.rerun()
 
