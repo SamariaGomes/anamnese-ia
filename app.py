@@ -668,7 +668,7 @@ ESPECIALIDADES = {
             "paciente": "Vanessa, 44 anos",
             "primeira_fala": "Doutor(a), tô me sentindo muito inchada, ganhei peso mesmo comendo pouco e tô com um sono e um frio fora do normal.",
             "prompt_sistema": (
-                "Você é Vanessa, 44 anos, secretária. "
+                "You are Vanessa, 44 anos, secretária. "
                 "Queixa: fadiga, sonolência, intolerância ao frio, ganho de 4 kg e constipação há 6 meses. "
                 "Detalhes (só revele se perguntado): pele seca, queda de cabelo, irregularidade menstrual; irmã tem doença na tireoide; sem alergias. "
                 "REGRAS: Só detalhe constipação, queda de cabelo e histórico familiar tireoidiano se perguntada."
@@ -909,7 +909,7 @@ if st.session_state.especialidade_ativa is None:
                 {logo_html} Anamnes<span class="ia-strong">IA</span>
             </div>
             <p class="hero-subtitle">
-                Escolha uma especialidade médica abaixo e depois selecione o nível de dificuldade (Fácil, Médio ou Difícil) para iniciar seu atendimento.
+                
             </p>
         </div>
         """,
@@ -994,7 +994,7 @@ elif st.session_state.nivel_ativo is None:
                 2️⃣ Selecione o Nível da <span class="ia-strong">Anamnese</span>
             </div>
             <p class="hero-subtitle">
-                Cada nível gera um caso clínico inédito ajustado à complexidade das pistas, comorbidades e comportamento do paciente.
+                
             </p>
         </div>
         """,
@@ -1087,7 +1087,7 @@ else:
             </div>
             <div class="hero-title" style="font-size: 1.6rem;">{dados_caso.get('titulo_caso', 'Consultório Virtual — AnamnesIA')}</div>
             <p class="hero-subtitle">
-                Converse com o paciente abaixo para investigar os sintomas. Quando concluir a anamnese, clique em <strong>🎓 Enviar Diagnóstico</strong> no topo da tela.
+                
             </p>
         </div>
         """,
