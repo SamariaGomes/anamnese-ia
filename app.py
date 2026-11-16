@@ -37,7 +37,7 @@ MODELOS_FLASH = [
     "gemini-2.0-flash",
 ]
 
-# 3. Identidade Visual: Branco, Roxo Lilás e Verde Esmeralda Super Forte (#00E676)
+# 3. Identidade Visual: Branco, Roxo Lilás e Verde Esmeralda Fosco/Sóbrio
 st.markdown(
     """
     <style>
@@ -62,14 +62,14 @@ st.markdown(
         color: #3F3356 !important;
     }
 
-    /* Banner Hero em Degradê Roxo Claro -> Verde Esmeralda Forte */
+    /* Banner Hero em Degradê Roxo Claro -> Verde Esmeralda Fosco */
     .hero-banner {
-        background: linear-gradient(135deg, #8B5CF6 0%, #A78BFA 45%, #00C853 100%);
+        background: linear-gradient(135deg, #8B5CF6 0%, #A78BFA 45%, #059669 100%);
         padding: 1.75rem 2rem;
         border-radius: 18px;
         color: #FFFFFF !important;
         margin-bottom: 1.4rem;
-        box-shadow: 0 10px 26px rgba(0, 200, 83, 0.25);
+        box-shadow: 0 10px 26px rgba(5, 150, 105, 0.18);
         border: 1px solid rgba(255, 255, 255, 0.45);
     }
     .hero-badges {
@@ -100,11 +100,11 @@ st.markdown(
         gap: 12px;
     }
     .hero-title .ia-strong {
-        color: #00E676 !important;
-        background: #FFFFFF;
+        color: #047857 !important;
+        background: #F0FDF4;
         padding: 0px 8px;
         border-radius: 6px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
     .hero-subtitle {
         font-size: 0.98rem;
@@ -113,7 +113,7 @@ st.markdown(
         margin: 0;
     }
 
-    /* Cards Brancos com Borda Lilás Clara e Destaque Verde Forte */
+    /* Cards Brancos com Borda Lilás Clara e Destaque Verde Fosco */
     .spec-card, .level-card {
         background-color: #FFFFFF;
         border: 1.5px solid #DDD6FE;
@@ -127,9 +127,9 @@ st.markdown(
     }
     .spec-card:hover, .level-card:hover {
         background-color: #FAF7FF;
-        border-color: #00E676;
-        border-top-color: #00E676;
-        box-shadow: 0 8px 22px rgba(0, 230, 118, 0.2);
+        border-color: #059669;
+        border-top-color: #059669;
+        box-shadow: 0 8px 22px rgba(5, 150, 105, 0.14);
         transform: translateY(-2px);
     }
     .level-card {
@@ -143,9 +143,9 @@ st.markdown(
     }
     .spec-scenario {
         display: inline-block;
-        background-color: #E8F5E9;
-        color: #00C853 !important;
-        border: 1px solid #A5D6A7;
+        background-color: #ECFDF5;
+        color: #047857 !important;
+        border: 1px solid #A7F3D0;
         border-radius: 999px;
         padding: 2px 10px;
         font-size: 0.78rem;
@@ -158,23 +158,23 @@ st.markdown(
         line-height: 1.48;
     }
 
-    /* Botões Principais (Verde Esmeralda Super Forte #00E676) */
+    /* Botões Principais (Verde Esmeralda Fosco e Elegante) */
     button[kind="primary"], [data-testid="baseButton-primary"] {
-        background: linear-gradient(135deg, #00C853 0%, #00E676 100%) !important;
-        color: #0F172A !important;
+        background: linear-gradient(135deg, #059669 0%, #047857 100%) !important;
+        color: #FFFFFF !important;
         border: none !important;
         border-radius: 10px !important;
-        font-weight: 800 !important;
-        box-shadow: 0 4px 14px rgba(0, 230, 118, 0.35) !important;
+        font-weight: 700 !important;
+        box-shadow: 0 4px 12px rgba(5, 150, 105, 0.22) !important;
         transition: all 0.2s ease !important;
     }
     button[kind="primary"]:hover, [data-testid="baseButton-primary"]:hover {
-        background: linear-gradient(135deg, #00B045 0%, #00C853 100%) !important;
-        box-shadow: 0 6px 18px rgba(0, 230, 118, 0.45) !important;
+        background: linear-gradient(135deg, #047857 0%, #065F46 100%) !important;
+        box-shadow: 0 6px 16px rgba(5, 150, 105, 0.3) !important;
         transform: translateY(-1px);
     }
     button[kind="primary"] p, [data-testid="baseButton-primary"] p {
-        color: #0F172A !important;
+        color: #FFFFFF !important;
     }
 
     /* Botões Secundários */
@@ -203,15 +203,15 @@ st.markdown(
         border-radius: 10px !important;
     }
     [data-testid="stTextInput"] input:focus, [data-testid="stTextArea"] textarea:focus {
-        border-color: #00E676 !important;
-        box-shadow: 0 0 0 2px rgba(0, 230, 118, 0.25) !important;
+        border-color: #059669 !important;
+        box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.18) !important;
     }
 
     /* Mensagens do Chat */
     [data-testid="stChatMessage"] {
         background-color: #FCFAFF !important;
         border: 1px solid #E9D5FF !important;
-        border-left: 4px solid #00E676 !important;
+        border-left: 4px solid #059669 !important;
         border-radius: 14px !important;
         padding: 1rem 1.2rem !important;
         margin-bottom: 0.75rem !important;
@@ -1105,7 +1105,7 @@ else:
             with c_prox1:
                 if st.button("🎲 Sortear Outro Caso neste Nível", type="primary", use_container_width=True):
                     with st.spinner("🩺 Chamando próximo paciente..."):
-                        iniciar_consulta_com_nested = iniciar_consulta_com_nivel(esp_atual, nivel_atual)
+                        iniciar_consulta_com_nivel(esp_atual, nivel_atual)
                     st.rerun()
             with c_prox2:
                 if st.button("🩺 Escolher Outra Especialidade", use_container_width=True):
