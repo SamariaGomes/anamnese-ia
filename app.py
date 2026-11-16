@@ -151,27 +151,29 @@ st.markdown(
         color: #4A4458 !important;
         line-height: 1.48;
     }
-    button[kind="primary"], [data-testid="baseButton-primary"] {
-        background: linear-gradient(135deg, #059669 0%, #047857 100%) !important;
+    
+    /* Estilização especial para o botão de Enviar Diagnóstico (Destaque em Laranja/Âmbar Vibrante) */
+    div.stButton > button[kind="primary"] {
+        background: linear-gradient(135deg, #D97706 0%, #B45309 100%) !important;
         color: #FFFFFF !important;
-        border: none !important;
+        border: 2px solid #FCD34D !important;
         border-radius: 10px !important;
-        font-weight: 700 !important;
-        box-shadow: 0 4px 12px rgba(5, 150, 105, 0.2) !important;
-        transition: all 0.2s ease !important;
+        font-weight: 800 !important;
+        box-shadow: 0 4px 15px rgba(217, 119, 6, 0.4) !important;
     }
-    button[kind="primary"]:hover, [data-testid="baseButton-primary"]:hover {
-        background: linear-gradient(135deg, #047857 0%, #065F46 100%) !important;
-        box-shadow: 0 6px 16px rgba(5, 150, 105, 0.28) !important;
+    div.stButton > button[kind="primary"]:hover {
+        background: linear-gradient(135deg, #B45309 100%, #92400E 100%) !important;
+        box-shadow: 0 6px 20px rgba(217, 119, 6, 0.6) !important;
         transform: translateY(-1px);
     }
+
+    /* Outros botões normais secundários */
     button[kind="secondary"], [data-testid="baseButton-secondary"] {
         background-color: #F4F1FA !important;
         color: #6D28D9 !important;
         border: 1.5px solid #D5CEE8 !important;
         border-radius: 10px !important;
         font-weight: 700 !important;
-        transition: all 0.2s ease !important;
     }
     button[kind="secondary"]:hover, [data-testid="baseButton-secondary"]:hover {
         background-color: #ECE7F7 !important;
@@ -546,6 +548,7 @@ else:
     info_esp = ESPECIALIDADES[esp_atual]
     dados_caso = st.session_state.caso_atual
 
+    # Layout de botões superiores com destaque máximo no Diagnóstico Final (tipo="primary")
     col_b1, col_b2, col_b3, col_b4 = st.columns([1, 1, 1, 1.35])
     with col_b1:
         if st.button("⬅️ Especialidades", use_container_width=True):
@@ -567,7 +570,8 @@ else:
             iniciar_consulta_com_nivel(esp_atual, nivel_ativo)
             st.rerun()
     with col_b4:
-        if st.button("🎓 Enviar Diagnóstico", type="primary", use_container_width=True):
+        # Botão principal com cor âmbar/ouro brilhante muito evidente na tela de atendimento
+        if st.button("🎓 Enviar Diagnóstico Final", type="primary", use_container_width=True):
             abrir_modal_diagnostico(esp_atual, nivel_ativo, dados_caso)
 
     st.markdown(
