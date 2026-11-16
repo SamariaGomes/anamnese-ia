@@ -1,297 +1,457 @@
 import os
+import streamlit as st
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
-import streamlit as st
 
-# Configuração da página do Streamlit
+# 1. Configuração da página (deve ser o primeiro comando Streamlit)
 st.set_page_config(
     page_title="AnamnesIA — Simulador Clínico",
     page_icon="🩺",
     layout="wide",
+    initial_sidebar_state="collapsed",
 )
 
-# Carrega e limpa a chave de API do arquivo .env
+# 2. Carregamento seguro da chave de API (funciona localmente no .env e na nuvem via Secrets)
 load_dotenv()
-api_key = os.getenv("GEMINI_API_KEY", "").strip().strip('"').strip("'")
+api_key = os.getenv("GEMINI_API_KEY", "")
+if not api_key:
+    try:
+        api_key = st.secrets.get("GEMINI_API_KEY", "")
+    except Exception:
+        api_key = ""
+api_key = api_key.strip().strip('"').strip("'")
 
 if not api_key:
-    st.error("⚠️ Chave de API do Gemini não encontrada! Configure o arquivo .env com a sua chave.")
+    st.error("⚠️ Chave de API do Gemini não encontrada! Configure o arquivo .env (local) ou Secrets (Streamlit Cloud) com GEMINI_API_KEY.")
     st.stop()
 
-# Configura o cliente da API do Google GenAI
 client = genai.Client(api_key=api_key)
 
-# Prioriza o modelo mais rápido e estável da conta, mantendo fallback automático
 MODELOS_FLASH = [
+    "gemini-2.5-flash",
+    "gemini-2.5-flash-lite",
     "gemini-3.5-flash-lite",
     "gemini-3.5-flash",
-    "gemini-3.6-flash",
-    "gemini-3.7-flash",
-    "gemini-3.8-flash",
+    "gemini-2.0-flash",
 ]
 
-# Banco Completo de Especialidades, Casos Clínicos e Gabaritos (24 especialidades)
-casos_especialidades = {
-    "Cardiologia": {
-        "icone": "❤️",
-        "ambiente": "Pronto-Socorro",
-        "descricao": "Investigação de dor torácica aguda, fatores de risco cardiovascular e sinais de alarme.",
-        "primeira_fala": "Doutor(a)... por favor, me ajuda. Meu peito tá apertando muito e começou a puxar para o braço esquerdo...",
-        "prompt_sistema": "Você é Carlos, 52 anos, motorista de aplicativo, em atendimento simulado. Você sente dor opressiva retroesternal há 2 horas, irradiando para o braço esquerdo, com sudorese fria e leve dispneia. Tem hipertensão e fuma 1 maço/dia. REGRAS: Responda apenas como o paciente Carlos, de forma curta, natural e ansiosa. Não dê diagnósticos. Só revele hipertensão e tabagismo se o estudante perguntar.",
-        "gabarito": "Diagnóstico: Síndrome Coronariana Aguda / Infarto Agudo do Miocárdio (IAM). Pontos-chave da anamnese: caracterizar dor opressiva com irradiação para MSE e sudorese, investigar hipertensão e tabagismo. Conduta inicial: ECG de 12 derivações em até 10 minutos, dosagem de troponina, monitorização cardíaca, oxigênio se SpO2 < 90% e AAS.",
-    },
-    "Saúde Mental (Psiquiatria)": {
-        "icone": "🧠",
-        "ambiente": "Urgência / Acolhimento",
-        "descricao": "Escuta ativa, acolhimento emocional e diferenciação entre sintomas físicos e ansiosos.",
-        "primeira_fala": "Doutor(a), eu não consigo respirar direito, meu coração tá disparado e parece que eu vou morrer!",
-        "prompt_sistema": "Você é Mariana, 28 anos, analista financeira, em atendimento simulado. Está com taquicardia, falta de ar, parestesia nas mãos e medo de morrer após uma semana exaustiva no trabalho. Não usa drogas nem tem cardiopatia. REGRAS: Responda apenas como Mariana, assustada e com frases curtas. Não dê diagnósticos. Só mencione a sobrecarga no trabalho se o estudante perguntar sobre gatilhos ou rotina.",
-        "gabarito": "Diagnóstico: Ataque de Pânico / Crise de Ansiedade Aguda. Pontos-chave da anamnese: acolher a paciente, investigar gatilhos psicossociais (estresse no trabalho), uso de estimulantes/drogas e excluir causas orgânicas/cardíacas. Conduta inicial: acolhimento verbal, técnica de respiração guiada, sinais vitais e ECG para descartar arritmia se necessário.",
-    },
-    "Pediatria": {
-        "icone": "🧸",
-        "ambiente": "Consultório Pediátrico",
-        "descricao": "Anamnese indireta com acompanhante, investigação de febre e sintomas na infância.",
-        "primeira_fala": "Olá doutor(a), trouxe o meu filho Lucas porque ele não dormiu nada essa noite, tá com febre alta e chorando muito...",
-        "prompt_sistema": "Você é Juliana, 31 anos, mãe do Lucas (4 anos), em consulta pediátrica simulada. Lucas tem febre de 38,8°C há 2 dias, irritabilidade, leva a mão à orelha direita e teve resfriado na semana passada. Vacinação em dia, sem alergias. REGRAS: Responda apenas como a mãe Juliana, preocupada e natural. Não dê diagnósticos. Só revele que ele puxa a orelha direita ou o resfriado prévio se o estudante perguntar.",
-        "gabarito": "Diagnóstico: Otite Média Aguda (OMA) à direita. Pontos-chave da anamnese: duração/temperatura da febre, sinal localizatório (levar mão à orelha direita), infecção de vias aéreas superiores (resfriado) prévia, estado vacinal e alergias medicamentosas. Conduta inicial: otoscopia bilateral, antitérmico/analgesia (dipirona ou paracetamol) e avaliar antibioticoterapia (amoxicilina).",
-    },
-    "Gastroenterologia": {
-        "icone": "🩺",
-        "ambiente": "Ambulatório",
-        "descricao": "Avaliação de dor abdominal, hábitos alimentares e uso de medicações gastrolesivas.",
-        "primeira_fala": "Bom dia, doutor(a). Vim consultar porque estou com uma queimação forte na boca do estômago que não melhora...",
-        "prompt_sistema": "Você é Roberto, 41 anos, representante comercial, em consulta simulada. Tem dor epigástrica em queimação há 3 semanas, que piora em jejum e alivia ao comer. Toma ibuprofeno quase diariamente por dor lombar. Nega melena ou vômitos com sangue. REGRAS: Responda apenas como Roberto, de forma natural. Não dê diagnósticos. Só mencione o uso frequente de ibuprofeno se o estudante perguntar sobre medicamentos.",
-        "gabarito": "Diagnóstico: Doença Ulcerosa Péptica (Úlcera Duodenal/Gástrica) ou Gastrite erosiva induzida por AINE. Pontos-chave da anamnese: relação da dor com alimentação (piora em jejum/alivia ao comer), uso crônico de anti-inflamatório (ibuprofeno) e pesquisa de sinais de alarme (melena, hematêmese, perda de peso). Conduta inicial: suspender ibuprofeno, iniciar inibidor de bomba de prótons (omeprazol) e solicitar Endoscopia Digestiva Alta.",
-    },
-    "Pneumologia": {
-        "icone": "🫁",
-        "ambiente": "Pronto-Atendimento",
-        "descricao": "Investigação de dispneia, sibilância, gatilhos ambientais e histórico respiratório.",
-        "primeira_fala": "Doutor(a)... *cof, cof*... meu peito tá chiando muito desde ontem à noite e tá difícil puxar o ar...",
-        "prompt_sistema": "Você é Fernanda, 34 anos, professora, em atendimento simulado. Tem tosse seca, chiado no peito e dispneia desde que limpou um depósito empoeirado ontem. Teve asma na infância e sua mãe também é asmática. Sem febre. REGRAS: Responda apenas como Fernanda, com frases curtas pelo cansaço. Não dê diagnósticos. Só revele o contato com poeira e o histórico familiar se o estudante investigar.",
-        "gabarito": "Diagnóstico: Crise Aguda de Asma (exacerbação desencadeada por alérgeno). Pontos-chave da anamnese: identificar exposição a gatilho ambiental (poeira), histórico pessoal de asma/bronquite na infância, histórico familiar de atopia e ausência de febre. Conduta inicial: oximetria de pulso, broncodilatador inalatório de curta ação (salbutamol) e corticoide sistêmico.",
-    },
-    "Endocrinologia": {
-        "icone": "⚡",
-        "ambiente": "Ambulatório",
-        "descricao": "Rastreamento metabólico, sintomas sistêmicos e antecedentes familiares.",
-        "primeira_fala": "Olá doutor(a). Marquei consulta porque ando sentindo um cansaço absurdo e uma sede que não passa por nada...",
-        "prompt_sistema": "Você é Sônia, 47 anos, costureira, em consulta simulada. Há 2 meses apresenta polidipsia intensa, poliúria noturna, fadiga e perda de 4 kg sem dieta. Seu pai tem diabetes tipo 2. REGRAS: Responda apenas como Sônia, de forma acolhedora e natural. Não dê diagnósticos. Só revele poliúria, perda de peso ou o histórico paterno se o estudante perguntar.",
-        "gabarito": "Diagnóstico: Diabetes Mellitus tipo 2 (descompensado). Pontos-chave da anamnese: identificar a tríade clássica (polidipsia, poliúria e perda ponderal inexplicada) e antecedente familiar de diabetes. Conduta inicial: solicitar glicemia de jejum, hemoglobina glicada (HbA1c), perfil lipídico, função renal e orientar mudanças no estilo de vida.",
-    },
-    "Nefrologia": {
-        "icone": "💧",
-        "ambiente": "Enfermaria / Ambulatório",
-        "descricao": "Avaliação de função renal, alterações urinárias, edema e uso de nefrotóxicos.",
-        "primeira_fala": "Doutor(a), notei que minhas pernas e meus olhos amanheceram muito inchados nos últimos dias, e quase não estou urinando...",
-        "prompt_sistema": "Você é Antônio, 63 anos, aposentado, em atendimento simulado. Apresenta edema periorbitário e de membros inferiores há 4 dias, redução do volume urinário (oligúria) e urina espumosa. É hipertenso, diabético e fez exame com contraste iodado há 5 dias. REGRAS: Responda apenas como Antônio, de forma natural. Não dê diagnósticos. Só mencione o exame com contraste ou o diabetes se o estudante perguntar.",
-        "gabarito": "Diagnóstico: Lesão Renal Aguda (LRA) nefrotóxica induzida por contraste iodado (sobreposta a fator de risco diabético/hipertensivo). Pontos-chave da anamnese: quantificar oligúria, caracterizar edema e espuma na urina, investigar exposição recente a nefrotóxicos (contraste) e comorbidades (DM/HAS). Conduta inicial: solicitar creatinina, ureia, eletrólitos, gasometria, EAS e ajustar medicações nefrotóxicas.",
-    },
-    "Oftalmologia": {
-        "icone": "👁️",
-        "ambiente": "Urgência Oftalmológica",
-        "descricao": "Diferenciação de olho vermelho agudo, dor ocular, fotofobia e hábitos de risco.",
-        "primeira_fala": "Ai, doutor(a), a luz tá doendo demais no meu olho direito! Ele tá muito vermelho, lacrimejando e a visão ficou embaçada...",
-        "prompt_sistema": "Você é Camila, 29 anos, designer, em atendimento simulado. Tem dor ocular intensa no olho direito, fotofobia, hiperemia e borramento visual desde hoje cedo. Usa lentes de contato gelatinosas e dormiu com elas ontem após entrar na piscina. REGRAS: Responda apenas como Camila, incomodada com a claridade. Não dê diagnósticos. Só conte sobre as lentes de contato e a piscina se o estudante perguntar.",
-        "gabarito": "Diagnóstico: Ceratite Infecciosa / Úlcera de Córnea associada ao uso inadequado de lentes de contato (risco de Pseudomonas ou Acanthamoeba). Pontos-chave da anamnese: diferenciar olho vermelho grave (dor intensa, fotofobia, baixa visual) e descobrir o uso noturno de lentes de contato após piscina. Conduta inicial: suspender lentes imediatamente, encaminhamento de urgência ao oftalmologista para lâmpada de fenda e não prescrever colírio de corticoide.",
-    },
-    "Otorrinolaringologia": {
-        "icone": "👂",
-        "ambiente": "Consultório ORL",
-        "descricao": "Caracterização de tontura vs vertigem, fatores desencadeantes e sintomas auditivos.",
-        "primeira_fala": "Doutor(a), parece que o quarto inteiro gira quando eu viro a cabeça na cama, chega a me dar enjoo...",
-        "prompt_sistema": "Você é Henrique, 38 anos, engenheiro, em atendimento simulado. Sente episódios breves (menos de 1 minuto) de vertigem rotatória intensa ao deitar ou virar na cama há 3 dias, com náuseas, mas sem zumbido, sem perda auditiva e sem cefaleia. REGRAS: Responda apenas como Henrique, objetivo e natural. Não dê diagnósticos. Só detalhe a duração das crises ou ausência de zumbido se o estudante perguntar.",
-        "gabarito": "Diagnóstico: Vertigem Posicional Paroxística Benigna (VPPB). Pontos-chave da anamnese: confirmar caráter rotatório, duração curta (< 1 minuto), gatilho posicional (virar na cama) e ausência de sintomas cocleares (zumbido/hipoacusia) ou neurológicos. Conduta inicial: realizar manobra diagnóstica de Dix-Hallpike e manobra terapêutica de reposicionamento de Epley.",
-    },
-    "Dermatologia": {
-        "icone": "🧴",
-        "ambiente": "Ambulatório / Pronto-Atendimento",
-        "descricao": "Investigação de lesões cutâneas, prurido, cronologia e exposição medicamentosa.",
-        "primeira_fala": "Doutor(a), meu corpo inteiro ficou cheio de manchas vermelhas que coçam muito desde ontem, e também tive um pouco de febre...",
-        "prompt_sistema": "Você é Beatriz, 25 anos, estudante de arquitetura, em atendimento simulado. Apresenta exantema maculopapular pruriginoso difuso no tronco e braços há 24h e febre de 38°C. Começou a tomar carbamazepina há 2 semanas para neuralgia. Nega falta de ar ou inchaço nos lábios. REGRAS: Responda apenas como Beatriz, preocupada. Não dê diagnósticos. Só revele o início da carbamazepina se o estudante perguntar sobre medicamentos recentes.",
-        "gabarito": "Diagnóstico: Farmacodermia / Reação Exantemática Medicamentosa induzida por carbamazepina (atenção para síndrome DRESS). Pontos-chave da anamnese: investigar início de novos fármacos nas últimas semanas (carbamazepina) e excluir sinais de gravidade (edema facial, acometimento de mucosas, dispneia). Conduta inicial: suspender imediatamente a carbamazepina, solicitar hemograma, função hepática e renal e prescrever sintomáticos.",
-    },
-    "Cirurgia Geral": {
-        "icone": "🔪",
-        "ambiente": "Pronto-Socorro Cirúrgico",
-        "descricao": "Avaliação de abdome agudo, migração da dor e sinais de irritação peritoneal.",
-        "primeira_fala": "Doutor(a), tô com uma dor na barriga desde ontem à noite que não passa e agora parece que firmou aqui embaixo do lado direito...",
-        "prompt_sistema": "Você é Rafael, 24 anos, técnico de informática, em atendimento simulado. Começou com dor difusa ao redor do umbigo há 18 horas, perda de apetite e náuseas; nas últimas 6 horas a dor migrou para a fossa ilíaca direita e piora ao andar ou tossir. Febre de 37,9°C. REGRAS: Responda apenas como Rafael, com expressão de dor. Não dê diagnósticos. Só revele a migração da dor e a anorexia se o estudante fizer perguntas direcionadas.",
-        "gabarito": "Diagnóstico: Apendicite Aguda (Abdome Agudo Inflamatório). Pontos-chave da anamnese: identificar a cronologia clássica (dor periumbilical inicial migrando para fossa ilíaca direita), anorexia, náuseas e febre baixa. Conduta inicial: exame físico abdominal (pesquisa de sinal de Blumberg), jejum, hidratação venosa, hemograma, PCR, ultrassonografia/TC de abdome e avaliação cirúrgica.",
-    },
-    "Ginecologia": {
-        "icone": "🌸",
-        "ambiente": "Consultório Ginecológico",
-        "descricao": "Anamnese ginecológica, ciclo menstrual, dor pélvica crônica e impacto funcional.",
-        "primeira_fala": "Bom dia, doutor(a). Vim porque minhas cólicas menstruais estão cada vez piores, a ponto de eu faltar no trabalho todo mês...",
-        "prompt_sistema": "Você é Patrícia, 32 anos, advogada, em consulta ginecológica simulada. Tem dismenorreia progressiva nos últimos 2 anos, dor durante a relação sexual (dispareunia profunda) e dificuldade para engravidar há 1 ano e meio. Ciclos regulares de 28 dias. REGRAS: Responda apenas como Patrícia, natural e reservada. Não dê diagnósticos. Só mencione dispareunia ou tentativa de gravidez se o estudante perguntar com tato.",
-        "gabarito": "Diagnóstico: Endometriose Pélvica. Pontos-chave da anamnese: investigar dismenorreia secundária progressiva, dispareunia de profundidade e infertilidade conjugal. Conduta inicial: exame físico ginecológico e solicitar ultrassonografia transvaginal com preparo intestinal ou ressonância magnética de pelve.",
-    },
-    "Obstetrícia": {
-        "icone": "🤰",
-        "ambiente": "Maternidade / Triagem Obstétrica",
-        "descricao": "Avaliação pré-natal de urgência, idade gestacional e sinais de gravidade materna.",
-        "primeira_fala": "Doutor(a), estou grávida de 8 meses e vim porque acordei com uma dor de cabeça muito forte na nuca e uns pontinhos brilhando na vista...",
-        "prompt_sistema": "Você é Larissa, 27 anos, primigesta com 34 semanas de gestação, em triagem obstétrica simulada. Apresenta cefaleia occipital intensa há 4 horas, escotomas cintilantes e dor na boca do estômago (epigastralgia). Sua pressão subiu nas últimas consultas do pré-natal e o bebê está mexendo normalmente. REGRAS: Responda apenas como Larissa, preocupada com o bebê. Não dê diagnósticos. Só revele epigastralgia ou pressão alta no pré-natal se o estudante investigar.",
-        "gabarito": "Diagnóstico: Pré-eclâmpsia com Sinais de Gravidade (Iminência de Eclâmpsia). Pontos-chave da anamnese: identificar idade gestacional (34 semanas), sinais premonitórios (cefaleia occipital, escotomas, epigastralgia), hipertensão no pré-natal e movimentação fetal. Conduta inicial: aferir pressão arterial imediatamente, internação hospitalar, sulfato de magnésio, exames laboratoriais (HELLP) e avaliação fetal.",
-    },
-    "Ortopedia": {
-        "icone": "🦴",
-        "ambiente": "Ambulatório / Pronto-Atendimento",
-        "descricao": "Investigação osteomuscular, irradiação radicular e bandeiras vermelhas na coluna.",
-        "primeira_fala": "Doutor(a), travei das costas depois de levantar uma caixa pesada e agora desce uma dor tipo choque pela minha perna direita...",
-        "prompt_sistema": "Você é Marcos, 45 anos, estoquista, em atendimento simulado. Tem lombalgia intensa há 3 dias após esforço físico, irradiando pela face posterior da coxa e perna direita até o pé, com formigamento. Nega perda de força, febre ou alteração para urinar/evacuar. REGRAS: Responda apenas como Marcos, desconfortável para sentar. Não dê diagnósticos. Só detalhe a irradiação ou ausência de alterações urinárias se o estudante perguntar.",
-        "gabarito": "Diagnóstico: Lombociatalgia Aguda / Radiculopatia Lombar (Hérnia de Disco) sem sinais de alarme. Pontos-chave da anamnese: caracterizar irradiação radicular abaixo do joelho com parestesia após sobrecarga e excluir bandeiras vermelhas (síndrome da cauda equina, déficit motor grave, febre). Conduta inicial: teste de Lasègue, analgesia/AINE, orientar retorno gradual às atividades sem repouso absoluto.",
-    },
-    "Anestesiologia": {
-        "icone": "💉",
-        "ambiente": "Avaliação Pré-Anestésica",
-        "descricao": "Rastreamento de via aérea, jejum, alergias, comorbidades e medicações de risco.",
-        "primeira_fala": "Olá doutor(a), vim passar na consulta pré-anestésica porque vou operar a vesícula na semana que vem...",
-        "prompt_sistema": "Você é Cláudia, 56 anos, comerciante, em consulta pré-anestésica simulada para colecistectomia videolaparoscópica. Tem hipertensão, ronca muito à noite e acorda cansada (apneia do sono não tratada), toma AAS infantil diariamente e tem alergia grave a dipirona (edema de glote no passado). REGRAS: Responda apenas como Cláudia, colaborativa. Não dê diagnósticos. Só revele o ronco, o uso de AAS ou a alergia a dipirona conforme o estudante perguntar.",
-        "gabarito": "Diagnóstico: Avaliação Pré-Anestésica ASA II com risco de Apneia Obstrutiva do Sono (SAOS), uso de antiagregante (AAS) e alergia grave (anafilaxia) à dipirona. Pontos-chave da anamnese: rastrear alergias graves, medicações em uso, comorbidades e sinais de SAOS (ronco/sonolência). Conduta inicial: registrar alergia à dipirona em destaque, orientar manejo do AAS e jejum pré-operatório e avaliar via aérea (Mallampati).",
-    },
-    "Neurologia": {
-        "icone": "🧬",
-        "ambiente": "Ambulatório de Neurologia",
-        "descricao": "Caracterização de cefaleias, sintomas visuais transitórios e sinais focais.",
-        "primeira_fala": "Doutor(a), tenho crises de dor de cabeça forte de um lado só que sempre começam com uns zigue-zagues brilhantes na visão...",
-        "prompt_sistema": "Você é Renata, 36 anos, jornalista, em consulta neurológica simulada. Tem crises recorrentes há anos de cefaleia hemicraniana pulsátil, forte, com náusea, fotofobia e fonofobia, precedidas por escotomas visuais em zigue-zague que duram 20 minutos. Piora com estresse e privação de sono. REGRAS: Responda apenas como Renata, clara e natural. Não dê diagnósticos. Só detalhe duração da aura ou sintomas associados se o estudante perguntar.",
-        "gabarito": "Diagnóstico: Migrânea (Enxaqueca) com Aura Visual. Pontos-chave da anamnese: caracterizar aura visual reversível (20 min), dor hemicraniana pulsátil, sintomas associados (náusea, fotofobia, fonofobia), cronicidade e gatilhos. Conduta inicial: tratamento abortivo da crise (AINE/triptano + antiemético), diário da cefaleia e evitar gatilhos.",
-    },
-    "Infectologia": {
-        "icone": "🦟",
-        "ambiente": "Pronto-Atendimento",
-        "descricao": "Investigação de síndrome febril aguda, epidemiologia e sinais de alarme.",
-        "primeira_fala": "Doutor(a), tô há 4 dias com febre alta, dor no corpo inteiro e hoje comecei a sentir uma dor forte na barriga e tontura ao levantar...",
-        "prompt_sistema": "Você é Tiago, 30 anos, educador físico, em atendimento simulado. Teve febre de 39°C, mialgia, cefaleia retro-orbitária e manchas vermelhas; hoje a febre baixou, mas surgiu dor abdominal contínua, vômitos persistentes e lipotimia ao ficar em pé. Houve surto de dengue no bairro. REGRAS: Responda apenas como Tiago, abatido. Não dê diagnósticos. Só revele vômitos persistentes ou dor retro-orbitária se o estudante investigar.",
-        "gabarito": "Diagnóstico: Dengue com Sinais de Alarme (Grupo C). Pontos-chave da anamnese: identificar fase crítica (melhora da febre no 4º dia), epidemiologia e sinais de alarme (dor abdominal contínua, vômitos persistentes e hipotensão postural/lipotimia). Conduta inicial: hidratação venosa imediata (protocolo Grupo C), hemograma completo urgente (hematócrito e plaquetas), teste diagnóstico (NS1/sorologia) e observação hospitalar.",
-    },
-    "Reumatologia": {
-        "icone": "🤲",
-        "ambiente": "Ambulatório",
-        "descricao": "Diferenciação de dor articular inflamatória vs mecânica e sintomas sistêmicos.",
-        "primeira_fala": "Bom dia, doutor(a). Minhas mãos e meus punhos amanhecem tão duros e inchados que eu levo mais de uma hora para conseguir mexer direito...",
-        "prompt_sistema": "Você é Helena, 39 anos, artesã, em consulta reumatológica simulada. Apresenta dor e edema simétrico em articulações metacarpofalangeanas, interfalangeanas proximais e punhos há 3 meses, com rigidez matinal que dura cerca de 1 hora e meia e melhora com o movimento. REGRAS: Responda apenas como Helena, natural. Não dê diagnósticos. Só detalhe a duração da rigidez matinal e a simetria se o estudante perguntar.",
-        "gabarito": "Diagnóstico: Artrite Reumatoide (Poliartrite Simétrica Inflamatória Crônica). Pontos-chave da anamnese: identificar padrão inflamatório (rigidez matinal > 1 hora que melhora ao movimento), simetria, acometimento de pequenas articulações das mãos/punhos e duração > 6 semanas. Conduta inicial: solicitar Fator Reumatoide, Anti-CCP, VHS, PCR, radiografia de mãos/punhos e encaminhar ao reumatologista.",
-    },
-    "Urologia": {
-        "icone": "🫘",
-        "ambiente": "Pronto-Socorro",
-        "descricao": "Avaliação de dor lombar aguda em cólica, irradiação e sintomas urinários.",
-        "primeira_fala": "Doutor(a), pelo amor de Deus, me dá um remédio! É uma dor insuportável nas costas do lado esquerdo que vai descendo pra virilha...",
-        "prompt_sistema": "Você é Jorge, 49 anos, motorista de ônibus, em atendimento simulado. Sente dor em cólica de início súbito na região lombar esquerda há 3 horas, irradiando para fossa ilíaca e testículo esquerdo, com náuseas e urina avermelhada. Bebe pouca água. Sem febre. REGRAS: Responda apenas como Jorge, inquieto de dor. Não dê diagnósticos. Só mencione urina avermelhada ou baixa ingestão hídrica se o estudante perguntar.",
-        "gabarito": "Diagnóstico: Nefrolitíase / Cólica Nefrética (Cálculo Ureteral à esquerda) não complicada. Pontos-chave da anamnese: dor lombar em cólica súbita com irradiação típica para virilha/testículo, hematúria, baixa ingestão hídrica e ausência de febre (excluindo pielonefrite obstrutiva). Conduta inicial: analgesia potente (AINE/opioide), antiemético, EAS, creatinina e TC de abdome/pelve sem contraste.",
-    },
-    "Hematologia": {
-        "icone": "🩸",
-        "ambiente": "Ambulatório",
-        "descricao": "Investigação de síndrome anêmica, fadiga crônica e fontes de perda sanguínea.",
-        "primeira_fala": "Olá doutor(a), vim consultar porque ando muito fraca, com falta de ar até para subir um lance de escada e todo mundo diz que tô pálida...",
-        "prompt_sistema": "Você é Aline, 23 anos, estudante universitária, em consulta simulada. Tem astenia progressiva, dispneia aos esforços, tontura e vontade estranha de mastigar gelo há 4 meses. Seu fluxo menstrual é muito intenso e dura 8 dias com coágulos. REGRAS: Responda apenas como Aline, calma e natural. Não dê diagnósticos. Só revele a hipermenorreia ou vontade de mastigar gelo se o estudante perguntar.",
-        "gabarito": "Diagnóstico: Anemia Ferropriva secundária a Sangramento Uterino Anormal (Hipermenorreia). Pontos-chave da anamnese: reconhecer síndrome anêmica (astenia, dispneia aos esforços), pica/pagofagia (vontade de comer gelo) e investigar perdas sanguíneas ginecológicas. Conduta inicial: solicitar hemograma, reticulócitos, ferritina, ferro sérico e saturação de transferrina, iniciar reposição de ferro oral e avaliar causa ginecológica.",
-    },
-    "Geriatria": {
-        "icone": "🧓",
-        "ambiente": "Ambulatório de Geriatria",
-        "descricao": "Avaliação multidimensional do idoso, polifarmácia, quedas e funcionalidade.",
-        "primeira_fala": "Bom dia, doutor(a). Minha filha insistiu para eu vir porque levei dois tombos em casa esse mês quando levantei rápido da cadeira...",
-        "prompt_sistema": "Você é Sr. Osvaldo, 78 anos, aposentado, em consulta geriátrica simulada. Teve 2 quedas recentes ao levantar rapidamente (tontura postural), sem perda de consciência. Toma 7 medicamentos diferentes por dia (incluindo dois anti-hipertensivos e clonazepam para dormir). REGRAS: Responda apenas como Sr. Osvaldo, simpático e pausado. Não dê diagnósticos. Só detalhe a lista de remédios e o uso de clonazepam se o estudante perguntar.",
-        "gabarito": "Diagnóstico: Instabilidade Postural / Quedas no Idoso por Hipotensão Ortostática e Polifarmácia (Iatrogenia medicamentosa). Pontos-chave da anamnese: caracterizar quedas ao ortostatismo, excluir síncope e revisar toda a lista de medicamentos (anti-hipertensivos + benzodiazepínico/clonazepam). Conduta inicial: aferir pressão arterial deitado e em pé, desprescrever clonazepam gradualmente e ajustar anti-hipertensivos.",
-    },
-    "Oncologia": {
-        "icone": "🎗️",
-        "ambiente": "Ambulatório",
-        "descricao": "Investigação de sinais de alarme digestivos, perda ponderal e hábitos de vida.",
-        "primeira_fala": "Bom dia, doutor(a). Vim porque de uns meses pra cá parece que a comida entala no meio do peito quando eu engulo carne ou pão...",
-        "prompt_sistema": "Você é Sérgio, 61 anos, pedreiro, em consulta simulada. Tem disfagia progressiva (começou para sólidos e agora até para pastosos) há 3 meses e perdeu 9 kg no período. Fuma cigarro de palha há 40 anos e consome destilados nos fins de semana. REGRAS: Responda apenas como Sérgio, simples e direto. Não dê diagnósticos. Só revele a perda de peso, o tabagismo ou o etilismo se o estudante perguntar.",
-        "gabarito": "Diagnóstico: Neoplasia Maligna de Esôfago (Suspeita de Câncer de Esôfago). Pontos-chave da anamnese: identificar disfagia mecânica progressiva (sólidos para pastosos), perda ponderal acentuada (9 kg) e os dois maiores fatores de risco (tabagismo e etilismo crônicos). Conduta inicial: solicitar Endoscopia Digestiva Alta (EDA) com biópsia com prioridade e exames de estadiamento.",
-    },
-    "Medicina de Emergência": {
-        "icone": "🚑",
-        "ambiente": "Sala de Emergência",
-        "descricao": "Reconhecimento rápido de reação sistêmica aguda, via aérea e exposição.",
-        "primeira_fala": "Doutor(a), comi um salgado ali na esquina há 15 minutos e comecei a empolar todo, minha boca tá inchando e tô sentindo um aperto na garganta...",
-        "prompt_sistema": "Você é Vitor, 35 anos, designer gráfico, em atendimento de emergência simulado. Apresenta urticária generalizada, angioedema labial e sensação de bolo/aperto na garganta 15 minutos após comer salgado que provavelmente continha camarão (tem alergia conhecida a frutos do mar). Voz levemente rouca. REGRAS: Responda apenas como Vitor, ansioso e com frases curtas. Não dê diagnósticos. Só confirme a alergia prévia a camarão se o estudante perguntar.",
-        "gabarito": "Diagnóstico: Anafilaxia Aguda (desencadeada por alergia alimentar a camarão). Pontos-chave da anamnese: reconhecer início agudo (< 15 min) com acometimento cutâneo-mucoso (urticária/angioedema) e comprometimento de via aérea (rouquidão/aperto na garganta) após exposição alergênica. Conduta inicial: administrar Adrenalina (Epinefrina) intramuscular imediatamente na face anterolateral da coxa, oxigênio suplementar, acesso venoso e monitorização.",
-    },
-    "Clínica Médica": {
-        "icone": "🏥",
-        "ambiente": "Consultório Geral",
-        "descricao": "Investigação de queixas inespecíficas, metabolismo basal e sintomas sistêmicos.",
-        "primeira_fala": "Olá doutor(a). Vim fazer um check-up porque ando com um desânimo fora do normal, engordei mesmo comendo pouco e sinto muito frio...",
-        "prompt_sistema": "Você é Lúcia, 50 anos, bibliotecária, em consulta clínica simulada. Há 6 meses apresenta fadiga, ganho de 5 kg, intolerância ao frio, constipação intestinal, pele seca e queda de cabelo. Sua irmã tem problema na tireoide. REGRAS: Responda apenas como Lúcia, tranquila e detalhista quando perguntada. Não dê diagnósticos. Só mencione constipação ou o histórico da irmã se o estudante investigar.",
-        "gabarito": "Diagnóstico: Hipotireoidismo Primário. Pontos-chave da anamnese: reunir sintomas clássicos de hipometabolismo (fadiga, ganho ponderal, intolerância ao frio, constipação, pele seca, queda capilar) e antecedente familiar de tireoidopatia. Conduta inicial: solicitar dosagem sérica de TSH e T4 livre (e anti-TPO se confirmado).",
-    },
-}
-
-# Inicializa estados da sessão
-if "especialidade_ativa" not in st.session_state:
-    st.session_state.especialidade_ativa = None
-
-if "messages" not in st.session_state:
-    st.session_state.messages = []
-
-if "avaliacao_final" not in st.session_state:
-    st.session_state.avaliacao_final = None
-
-# Estilos globais
+# 3. Estilos visuais (Hero Banner, Cartões de Especialidade e Destaques)
 st.markdown(
     """
     <style>
-        .block-container {
-            padding-top: 2rem;
-            padding-bottom: 2rem;
-        }
-        .anamnese-banner {
-            background: linear-gradient(135deg, #0B3954 0%, #087E8B 55%, #0D9488 100%);
-            padding: 1.75rem 2rem;
-            border-radius: 16px;
-            color: #FFFFFF;
-            box-shadow: 0 8px 24px rgba(8, 126, 139, 0.22);
-            margin-bottom: 1.5rem;
-            border: 1px solid rgba(255, 255, 255, 0.14);
-        }
-        .anamnese-badges {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.5rem;
-            margin-bottom: 0.75rem;
-        }
-        .badge-pill {
-            background: rgba(255, 255, 255, 0.16);
-            padding: 0.25rem 0.75rem;
-            border-radius: 999px;
-            font-size: 0.78rem;
-            font-weight: 600;
-            letter-spacing: 0.03em;
-            color: #FFFFFF;
-            border: 1px solid rgba(255, 255, 255, 0.25);
-        }
-        .anamnese-title {
-            font-size: 2.15rem;
-            font-weight: 800;
-            margin: 0;
-            line-height: 1.15;
-            letter-spacing: -0.02em;
-            color: #FFFFFF;
-        }
-        .anamnese-subtitle {
-            font-size: 1rem;
-            margin: 0.5rem 0 0 0;
-            color: rgba(255, 255, 255, 0.92);
-            max-width: 720px;
-            line-height: 1.45;
-        }
+    .hero-banner {
+        background: linear-gradient(135deg, #0b5e5e 0%, #12827c 100%);
+        padding: 1.8rem 2rem;
+        border-radius: 16px;
+        color: white;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 6px 18px rgba(11, 94, 94, 0.18);
+    }
+    .hero-badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 0.8rem;
+    }
+    .hero-badge {
+        background: rgba(255, 255, 255, 0.16);
+        border: 1px solid rgba(255, 255, 255, 0.28);
+        padding: 4px 12px;
+        border-radius: 999px;
+        font-size: 0.78rem;
+        font-weight: 600;
+        letter-spacing: 0.4px;
+    }
+    .hero-title {
+        font-size: 2.1rem;
+        font-weight: 800;
+        margin: 0 0 0.4rem 0;
+        color: #ffffff;
+    }
+    .hero-subtitle {
+        font-size: 1rem;
+        opacity: 0.94;
+        margin: 0;
+    }
+    .spec-card {
+        border: 1px solid rgba(128, 128, 128, 0.25);
+        border-radius: 12px;
+        padding: 1.1rem 1.2rem 0.6rem 1.2rem;
+        margin-bottom: 0.5rem;
+        min-height: 155px;
+    }
+    .spec-title {
+        font-size: 1.18rem;
+        font-weight: 700;
+        margin-bottom: 0.25rem;
+    }
+    .spec-scenario {
+        font-size: 0.84rem;
+        opacity: 0.75;
+        margin-bottom: 0.65rem;
+    }
+    .spec-desc {
+        font-size: 0.92rem;
+        line-height: 1.45;
+    }
+    .diag-callout {
+        background: rgba(18, 130, 124, 0.10);
+        border-left: 4px solid #12827c;
+        padding: 0.75rem 1rem;
+        border-radius: 8px;
+        margin-top: 1rem;
+        margin-bottom: 0.5rem;
+        font-size: 0.95rem;
+    }
     </style>
     """,
     unsafe_allow_html=True,
 )
 
+# 4. Catálogo Completo com 24 Especialidades Médicas
+CASOS_CLINICOS = {
+    "Cardiologia": {
+        "icone": "❤️",
+        "cenario": "Pronto-Socorro",
+        "descricao": "Investigação de dor torácica aguda, fatores de risco cardiovascular e sinais de alarme.",
+        "paciente": "Carlos, 54 anos",
+        "primeira_fala": "Doutor(a)... por favor, me ajuda. Meu peito tá apertando muito faz quase duas horas e começou a puxar pro braço esquerdo...",
+        "prompt_sistema": (
+            "Você é Carlos, 54 anos, motorista de aplicativo, em atendimento no pronto-socorro. "
+            "Queixa: dor torácica opressiva retroesternal há 2 horas, intensidade 8/10, irradiando para braço esquerdo e mandíbula, com sudorese fria e náusea. "
+            "Antecedentes (só revele se perguntado): hipertenso há 10 anos (toma losartana de forma irregular), tabagista (1 maço/dia há 25 anos), pai faleceu de infarto aos 58 anos. Nega alergias. "
+            "REGRAS: Responda apenas como o paciente, em português natural, frases curtas e com ansiedade pela dor. Nunca diga o diagnóstico nem entregue antecedentes sem ser perguntado."
+        ),
+        "gabarito": "Diagnóstico: Síndrome Coronariana Aguda / Infarto Agudo do Miocárdio (IAM). Pistas essenciais: dor opressiva irradiada, sudorese fria, hipertensão mal controlada, tabagismo e história familiar precoce. Conduta: MOV (Monitorização, Oxigênio se SatO2 < 90%, Veia), ECG em até 10 min, troponina, AAS 200-300mg mastigado e analgesia/nitrato se sem contraindicação.",
+    },
+    "Saúde Mental (Psiquiatria)": {
+        "icone": "🧠",
+        "cenario": "Urgência / Acolhimento",
+        "descricao": "Escuta ativa, acolhimento emocional e diferenciação entre sintomas físicos e ansiosos.",
+        "paciente": "Mariana, 27 anos",
+        "primeira_fala": "Doutor(a), eu não consigo respirar direito, meu coração tá disparado e parece que eu vou desmaiar ou morrer agora...",
+        "prompt_sistema": (
+            "Você é Mariana, 27 anos, analista financeira. "
+            "Queixa: início súbito há 30 minutos de palpitações, falta de ar, formigamento nas mãos, tontura e medo intenso de morrer. "
+            "Contexto (só revele se perguntado): teve outros 2 episódios parecidos no último mês após sobrecarga extrema no trabalho; toma muito café e dorme 4h por noite. Nega doenças cardíacas, uso de drogas ilícitas ou alergias. "
+            "REGRAS: Responda apenas como Mariana, assustada, pedindo ajuda. Seja concisa e não revele o gatilho emocional antes de ser perguntada."
+        ),
+        "gabarito": "Diagnóstico: Transtorno de Pânico / Crise de Ansiedade Aguda. Pistas essenciais: início súbito com pico rápido, sintomas autonômicos (taquicardia, parestesia, dispneia), medo de morrer, recorrência e gatilho de estresse/privação de sono, excluindo causas orgânicas. Conduta: acolhimento verbal, técnica de respiração lenta, descartar causas cardíacas/metabólicas (ECG/glicemia) e encaminhar para acompanhamento psiquiátrico/psicológico.",
+    },
+    "Pediatria": {
+        "icone": "👶",
+        "cenario": "Consultório Pediátrico",
+        "descricao": "Anamnese indireta com acompanhante, investigação de febre e sintomas na infância.",
+        "paciente": "Lucas, 4 anos (acompanhado pela mãe, Fernanda)",
+        "primeira_fala": "Oi doutor(a), trouxe o Lucas porque ele tá com febre alta desde ontem e hoje não quis comer nada, só fica choramingando.",
+        "prompt_sistema": (
+            "Você é Fernanda, mãe de Lucas (4 anos). "
+            "Queixa: febre de 39,2°C desde ontem à noite, dor de garganta, recusa alimentar e queda do estado geral. "
+            "Detalhes (só revele se perguntado): não tem tosse nem coriza; tem placas esbranquiçadas na garganta (você viu com a lanterna do celular) e caroços doloridos no pescoço; vacinas em dia; alergia grave à penicilina/amoxicilina (teve urticária generalizada aos 2 anos). "
+            "REGRAS: Responda como a mãe preocupada, de forma clara e objetiva. Só mencione a alergia a amoxicilina/penicilina se o estudante perguntar sobre alergias medicamentosas."
+        ),
+        "gabarito": "Diagnóstico: Faringoamigdalite Bacteriana Aguda (Estreptocócica) em paciente alérgico a penicilinas. Pistas essenciais: febre alta, odinofagia, ausência de sintomas virais (sem tosse/coriza), exsudato amigdaliano, linfadenopatia cervical e ALERGIA À PENICILINA. Conduta: prescrição de macrolídeo (ex: Azitromicina ou Claritromicina, evitando amoxicilina!), antitérmico/analgésico e hidratação.",
+    },
+    "Gastroenterologia": {
+        "icone": "🤢",
+        "cenario": "Ambulatório",
+        "descricao": "Avaliação de dor abdominal, hábitos alimentares e uso de medicações gastrolesivas.",
+        "paciente": "Roberto, 46 anos",
+        "primeira_fala": "Doutor(a), tô com uma queimação e uma dor forte na boca do estômago que vem piorando faz umas três semanas.",
+        "prompt_sistema": (
+            "Você é Roberto, 46 anos, representante comercial. "
+            "Queixa: dor epigástrica em queimação há 3 semanas, piora em jejum e de madrugada, melhora temporariamente quando come. "
+            "Detalhes (só revele se perguntado): faz uso diário de diclofenaco/ibuprofeno há 2 meses por conta própria devido a uma dor no joelho; fezes ficaram muito escuras e pastosas (melena) nos últimos 2 dias; nega vômitos; alergia a dipirona. "
+            "REGRAS: Responda como Roberto, tranquilo, achando que é apenas 'gastrite nervosa'. Só fale do anti-inflamatório e das fezes escuras se perguntado."
+        ),
+        "gabarito": "Diagnóstico: Úlcera Péptica induzida por AINEs com Hemorragia Digestiva Alta (melena). Pistas essenciais: dor epigástrica com ritmo alimentar, uso crônico de anti-inflamatórios não esteroidais (AINEs) e fezes escuras (melena). Conduta: suspender AINE imediatamente, iniciar inibidor de bomba de prótons (omeprazol/pantoprazol), solicitar hemograma e Endoscopia Digestiva Alta (EDA) com urgência.",
+    },
+    "Pneumologia": {
+        "icone": "🫁",
+        "cenario": "Pronto-Atendimento",
+        "descricao": "Investigação de dispneia, sibilância, gatilhos ambientais e histórico respiratório.",
+        "paciente": "Juliana, 22 anos",
+        "primeira_fala": "Doutor(a)... tô com o peito chiando muito e uma falta de ar que começou depois que eu limpei um quarto fechado lá em casa.",
+        "prompt_sistema": (
+            "Você é Juliana, 22 anos, estudante universitária. "
+            "Queixa: falta de ar, chiado no peito e tosse seca há 1 hora após contato com poeira. "
+            "Detalhes (só revele se perguntado): teve asma na infância, mas estava sem crises há 5 anos e não tem bombinha em casa; consegue falar frases completas ainda, sem febre; rinite alérgica associada; sem alergia a medicamentos. "
+            "REGRAS: Responda com leve falta de ar, frases curtas. Só revele o histórico de asma na infância se perguntado."
+        ),
+        "gabarito": "Diagnóstico: Crise Aguda de Asma (Exacerbação Asmática leve a moderada desencadeada por alérgeno). Pistas essenciais: dispneia, sibilância, gatilho ambiental (poeira) e antecedente pessoal de asma/atopia. Conduta: broncodilatador beta-2 agonista de curta ação (Salbutamol inalatório), corticoide sistêmico (Prednisona/Hidrocortisona) e oximetria.",
+    },
+    "Endocrinologia": {
+        "icone": "⚡",
+        "cenario": "Ambulatório",
+        "descricao": "Rastreamento metabólico, sintomas sistêmicos e antecedentes familiares.",
+        "paciente": "Renata, 38 anos",
+        "primeira_fala": "Doutor(a), vim consultar porque tô sentindo um cansaço absurdo e uma sede que não passa por nada nesse mundo.",
+        "prompt_sistema": (
+            "Você é Renata, 38 anos, professora. "
+            "Queixa: polidipsia (muita sede), poliúria (levantando 4 vezes à noite para urinar), cansaço intenso e perda de 5 kg no último mês mesmo comendo bem. "
+            "Detalhes (só revele se perguntado): mãe e tia têm diabetes tipo 2; teve diabetes gestacional na última gravidez há 4 anos; visão um pouco embaçada recentemente; sem alergias. "
+            "REGRAS: Responda de forma natural como Renata. Só mencione a perda de peso, poliúria e histórico familiar se perguntado."
+        ),
+        "gabarito": "Diagnóstico: Diabetes Mellitus descompensado (provável DM2 de início recente / LADA). Pistas essenciais: tríade clássica (poliúria, polidipsia, perda ponderal inexplicada), antecedente de diabetes gestacional e história familiar positiva. Conduta: solicitar glicemia de jejum, hemoglobina glicada (HbA1c), glicemia capilar imediata, função renal e orientar mudança de estilo de vida / início de terapia.",
+    },
+    "Nefrologia": {
+        "icone": "💧",
+        "cenario": "Pronto-Atendimento",
+        "descricao": "Dor lombar aguda, alterações urinárias e diferenciação de cólica nefrética.",
+        "paciente": "Tiago, 34 anos",
+        "primeira_fala": "Ai, doutor(a), tô com uma dor insuportável nas costas do lado direito que não melhora em posição nenhuma!",
+        "prompt_sistema": (
+            "Você é Tiago, 34 anos, programador. "
+            "Queixa: dor lombar direita em cólica, início súbito há 3 horas, intensidade 9/10, irradiando para virilha/testículo direito, com náuseas. "
+            "Detalhes (só revele se perguntado): bebe pouquíssima água durante o dia; notou urina avermelhada hoje; nega febre ou calafrios; já teve pedra no rim há 3 anos; sem alergias. "
+            "REGRAS: Responda inquieto pela dor, frases curtas. Só conte sobre urina avermelhada, baixa ingesta hídrica e ausência de febre se perguntado."
+        ),
+        "gabarito": "Diagnóstico: Nefrolitíase / Cólica Nefrética não complicada. Pistas essenciais: dor lombar em cólica com irradiação para região inguinal, hematúria, baixa ingesta hídrica, história prévia de litíase e ausência de febre (afasta pielonefrite obstrutiva). Conduta: analgesia potente (AINE + opioide/dipirona se necessário), antiemético, hidratação e exame de imagem (TC sem contraste ou USG de vias urinárias).",
+    },
+    "Oftalmologia": {
+        "icone": "👁️",
+        "cenario": "Urgência Oftalmológica",
+        "descricao": "Investigação de olho vermelho, dor ocular, alteração visual e uso de lentes.",
+        "paciente": "Camila, 25 anos",
+        "primeira_fala": "Doutor(a), meu olho direito amanheceu super vermelho, doendo muito e lacrimejando, não consigo nem olhar pra luz.",
+        "prompt_sistema": (
+            "Você é Camila, 25 anos, arquiteta. "
+            "Queixa: dor ocular intensa no olho direito, hiperemia, fotofobia, lacrimejamento e visão levemente embaçada desde hoje cedo. "
+            "Detalhes (só revele se perguntado): usa lentes de contato gelatinosas e dormiu com elas ontem à noite; nega trauma direto ou secreção purulenta espessa; sem alergias. "
+            "REGRAS: Responda incomodada com a claridade. Só revele que usa lentes de contato e dormiu com elas se o estudante perguntar."
+        ),
+        "gabarito": "Diagnóstico: Ceratite Infecciosa / Úlcera de Córnea associada ao uso de lentes de contato. Pistas essenciais: olho vermelho doloroso, fotofobia, baixa de acuidade visual e uso inadequado de lentes de contato (dormir com lentes). Conduta: suspender imediatamente o uso das lentes, NÃO prescrever colírio com corticoide, encaminhar com urgência ao oftalmologista para biomicroscopia/teste de fluoresceína e antibioticoterapia tópica.",
+    },
+    "Otorrinolaringologia": {
+        "icone": "👂",
+        "cenario": "Ambulatório",
+        "descricao": "Avaliação de vertigem, zumbido, perda auditiva e sintomas vestibulares.",
+        "paciente": "Helena, 49 anos",
+        "primeira_fala": "Doutor(a), parece que o quarto inteiro tá rodando quando eu viro a cabeça na cama, tô até com enjoo.",
+        "prompt_sistema": (
+            "Você é Helena, 49 anos, costureira. "
+            "Queixa: episódios curtos (duram cerca de 30 segundos) de tontura rotatória intensa desencadeados ao deitar, levantar ou virar a cabeça para a direita, há 4 dias. "
+            "Detalhes (só revele se perguntado): não tem zumbido, nem perda de audição, nem dor de cabeça, nem fraqueza nos braços; melhora quando fica parada; sem alergias. "
+            "REGRAS: Responda com cautela para não mexer a cabeça. Só detalhe a duração curta e ausência de sintomas auditivos/neurológicos se perguntada."
+        ),
+        "gabarito": "Diagnóstico: Vertigem Posicional Paroxística Benigna (VPPB). Pistas essenciais: vertigem rotatória episódica de curta duração (< 1 min) desencadeada por mudança de posição cefálica, sem sintomas cocleares (sem zumbido/hipoacusia) ou neurológicos centrais. Conduta: realizar manobra diagnóstica de Dix-Hallpike e manobra de reposicionamento canalicular de Epley.",
+    },
+    "Dermatologia": {
+        "icone": "🩹",
+        "cenario": "Consultório",
+        "descricao": "Anamnese de lesões cutâneas, evolução temporal, prurido e exposição.",
+        "paciente": "Bruno, 31 anos",
+        "primeira_fala": "Doutor(a), apareceu uma mancha escura nas minhas costas que minha esposa achou estranha e pediu pra eu vir olhar.",
+        "prompt_sistema": (
+            "Você é Bruno, 31 anos, instrutor de surfe. "
+            "Queixa: lesão pigmentada no dorso superior notada há 4 meses, que cresceu de tamanho, tem bordas irregulares e duas cores (marrom escuro e preto), com coceira leve ocasional. "
+            "Detalhes (só revele se perguntado): pele muito clara, trabalha exposto ao sol sem protetor solar diariamente e teve várias queimaduras solares com bolhas na adolescência; tia materna teve melanoma. "
+            "REGRAS: Responda de forma descontraída. Só conte sobre as características da mancha (regra ABCDE), exposição solar e histórico familiar se perguntado."
+        ),
+        "gabarito": "Diagnóstico: Suspeita de Melanoma Cutâneo (critérios ABCDE positivos). Pistas essenciais: assimetria, bordas irregulares, variação de cores, evolução/crescimento recente, fototipo baixo, exposição solar crônica e história familiar de melanoma. Conduta: dermatoscopia e biópsia excisional com margem para exame anatomopatológico.",
+    },
+    "Cirurgia Geral": {
+        "icone": "🔪",
+        "cenario": "Pronto-Socorro Cirúrgico",
+        "descricao": "Investigação de abdome agudo, migração da dor e sinais de irritação peritoneal.",
+        "paciente": "Gabriel, 21 anos",
+        "primeira_fala": "Doutor(a), tô com uma dor na barriga desde ontem à noite que começou perto do umbigo e agora foi pro lado direito embaixo.",
+        "prompt_sistema": (
+            "Você é Gabriel, 21 anos, estudante. "
+            "Queixa: dor abdominal iniciada há 18 horas na região periumbilical, que migrou para a fossa ilíaca direita, contínua e piora ao andar ou tossir. "
+            "Detalhes (só revele se perguntado): perdeu completamente o apetite (anorexia), teve um episódio de vômito e febre baixa (37,9°C); nega diarreia ou ardência para urinar; sem cirurgias prévias ou alergias. "
+            "REGRAS: Responda curvado segurando o lado direito da barriga. Só revele anorexia, febre e ausência de sintomas urinários se perguntado."
+        ),
+        "gabarito": "Diagnóstico: Apendicite Aguda. Pistas essenciais: cronologia clássica de Murphy (dor periumbilical que migra para fossa ilíaca direita), anorexia, náusea/vômito e febrícula. Conduta: jejum, hidratação venosa, analgesia, hemograma/PCR, exame de imagem se dúvida (USG/TC) e avaliação cirúrgica para apendicectomia.",
+    },
+    "Ginecologia": {
+        "icone": "🌸",
+        "cenario": "Consultório Ginecológico",
+        "descricao": "Anamnese ginecológica, dor pélvica, ciclo menstrual e investigação clínica.",
+        "paciente": "Larissa, 29 anos",
+        "primeira_fala": "Doutor(a), eu vim porque minhas cólicas menstruais estão ficando cada vez piores e já não passam com remédio comum.",
+        "prompt_sistema": (
+            "Você é Larissa, 29 anos, designer. "
+            "Queixa: dismenorreia progressiva nos últimos 2 anos, dor pélvica crônica e dor profunda durante a relação sexual (dispareunia). "
+            "Detalhes (só revele se perguntado): está tentando engravidar há 1 ano e meio sem sucesso; ciclos regulares com fluxo intenso; dor também ao evacuar durante a menstruação; sem alergias. "
+            "REGRAS: Responda de forma educada e um pouco reservada no início, abrindo detalhes íntimos (dispareunia, infertilidade) apenas se perguntada com respeito."
+        ),
+        "gabarito": "Diagnóstico: Endometriose Pélvica. Pistas essenciais: dismenorreia secundária progressiva, dispareunia de profundidade, disquezia cíclica e infertilidade primária. Conduta: exame físico ginecológico, ultrassonografia transvaginal com preparo intestinal ou ressonância magnética de pelve, e manejo clínico/cirúrgico individualizado.",
+    },
+    "Obstetrícia": {
+        "icone": "🤰",
+        "cenario": "Pronto-Atendimento Obstétrico",
+        "descricao": "Gestação, sinais de alerta hipertensivo e avaliação materno-fetal.",
+        "paciente": "Beatriz, 32 anos (gestante de 34 semanas)",
+        "primeira_fala": "Doutor(a), tô grávida de 34 semanas e vim porque hoje acordei com uma dor de cabeça forte na nuca e minha vista tá meio embaralhada.",
+        "prompt_sistema": (
+            "Você é Beatriz, 32 anos, primeira gestação (34 semanas). "
+            "Queixa: cefaleia frontal/occipital intensa há 4 horas, escotomas (pontos brilhantes na visão) e dor na boca do estômago (epigastralgia). "
+            "Detalhes (só revele se perguntado): notou inchaço súbito nas mãos e no rosto nos últimos 2 dias; o bebê está mexendo normalmente; pré-natal sem alterações até a semana passada; sem alergias. "
+            "REGRAS: Responda preocupada com o bebê. Só conte sobre a epigastralgia e o edema facial/mãos se perguntada."
+        ),
+        "gabarito": "Diagnóstico: Pré-eclâmpsia com sinais de gravidade (iminência de eclâmpsia). Pistas essenciais: gestante > 20 semanas com cefaleia persistente, alterações visuais (escotomas) e epigastralgia (sinais premonitórios de eclâmpsia). Conduta: aferir PA imediatamente, sulfato de magnésio para neuroproteção/prevenção de convulsão, anti-hipertensivo se PA >= 160x110, exames laboratoriais (síndrome HELLP) e avaliação da vitalidade fetal.",
+    },
+    "Ortopedia": {
+        "icone": "🦴",
+        "cenario": "Pronto-Socorro Ortopédico",
+        "descricao": "Trauma musculoesquelético, mecanismo de lesão e exame neurovascular.",
+        "paciente": "Rafael, 26 anos",
+        "primeira_fala": "Doutor(a), torci feio o tornozelo direito jogando futebol agora há pouco e não consigo nem encostar o pé no chão.",
+        "prompt_sistema": (
+            "Você é Rafael, 26 anos, engenheiro civil. "
+            "Queixa: trauma torcional em inversão do tornozelo direito há 1 hora durante partida de futebol, dor intensa e edema imediato na parte lateral. "
+            "Detalhes (só revele se perguntado): ouviu um estalo na hora; não consegue dar 4 passos apoiando o pé; sente dor forte ao apertar o osso do lado de fora (maléolo lateral); mexe os dedos e sente normal (sem formigamento); sem alergias. "
+            "REGRAS: Responda com dor ao movimentar o pé. Só detalhe o estalo e a incapacidade de dar 4 passos (regras de Ottawa) se perguntado."
+        ),
+        "gabarito": "Diagnóstico: Entorse Grave de Tornozelo / Suspeita de Fratura de Maléolo Lateral (Critérios de Ottawa positivos). Pistas essenciais: mecanismo em inversão, edema imediato, dor óssea maleolar e incapacidade de sustentar o peso por 4 passos. Conduta: solicitar radiografia de tornozelo (AP, perfil e mortise) pelas Regras de Ottawa, imobilização provisória, gelo, elevação e analgesia.",
+    },
+    "Anestesiologia": {
+        "icone": "💉",
+        "cenario": "Avaliação Pré-Anestésica",
+        "descricao": "Risco cirúrgico, via aérea, jejum, alergias e uso contínuo de medicamentos.",
+        "paciente": "Sérgio, 61 anos",
+        "primeira_fala": "Bom dia, doutor(a). Vim fazer a avaliação pré-anestésica porque vou operar a vesícula por vídeo na semana que vem.",
+        "prompt_sistema": (
+            "Você é Sérgio, 61 anos, aposentado. "
+            "Queixa: consulta pré-anestésica para colecistectomia videolaparoscópica eletiva. "
+            "Detalhes (só revele se perguntado): toma clopidogrel e AAS porque colocou um stent cardíaco há 4 meses; tem apneia do sono e ronca muito; sobe 1 lance de escada sem cansar; já teve reação grave com febre alta na família durante anestesia geral (um irmão teve hipertermia maligna); alergia a látex. "
+            "REGRAS: Responda de forma colaborativa, mas só revele o uso de antiagregantes/stent, a alergia a látex e o histórico familiar de hipertermia maligna se perguntado especificamente."
+        ),
+        "gabarito": "Diagnóstico: Paciente de Alto Risco Anestésico (Stent coronariano recente em dupla antiagregação + Suscetibilidade à Hipertermia Maligna + Alergia ao Látex). Pistas essenciais: stent recente (risco de trombose se suspender antiagregante sem cardiologista), história familiar de hipertermia maligna (contraindica succinilcolina e halogenados) e alergia ao látex (sala látex-free). Conduta: parecer cardiológico para manejo de antiagregantes, programar anestesia venosa total (TIVA) e ambiente livre de látex.",
+    },
+    "Neurologia": {
+        "icone": "⚡",
+        "cenario": "Emergência Neurológica",
+        "descricao": "Déficit neurológico focal agudo, tempo de início (janela) e fatores vasculares.",
+        "paciente": "Antônio, 67 anos (acompanhado pela filha, Paula)",
+        "primeira_fala": "Doutor(a), corre aqui! Meu pai tava tomando café agora há pouco e do nada a boca dele entortou e ele não consegue mexer o braço direito!",
+        "prompt_sistema": (
+            "Você é Paula, filha de Antônio (67 anos). "
+            "Queixa: início súbito há exatos 40 minutos de desvio de rima labial, fala enrolada (disartria) e perda de força no braço direito. "
+            "Detalhes (só revele se perguntado): ele tem fibrilação atrial e hipertensão, mas parou de tomar o anticoagulante (rivaroxabana) há 1 semana porque acabou a receita; não bateu a cabeça nem teve convulsão; sem cirurgias recentes. "
+            "REGRAS: Responda em tom de urgência como a filha. Só revele o horário exato (40 min) e a suspensão do anticoagulante se perguntado."
+        ),
+        "gabarito": "Diagnóstico: Acidente Vascular Cerebral Isquêmico Agudo (AVCi) em janela terapêutica (< 4,5h). Pistas essenciais: déficit focal súbito (Escala de Cincinnati positiva), tempo exato de início (40 min) e fibrilação atrial sem anticoagulação. Conduta: acionar protocolo AVC imediatamente, glicemia capilar, Tomografia de Crânio sem contraste de urgência (excluir hemorragia) e avaliar trombólise/trombectomia.",
+    },
+    "Infectologia": {
+        "icone": "🦠",
+        "cenario": "Pronto-Atendimento",
+        "descricao": "Síndrome febril aguda, epidemiologia, sinais de alarme e diagnóstico diferencial.",
+        "paciente": "Felipe, 29 anos",
+        "primeira_fala": "Doutor(a), tô há quatro dias com uma febre altíssima, dor no corpo inteiro e uma dor atrás dos olhos que não me deixa nem trabalhar.",
+        "prompt_sistema": (
+            "Você é Felipe, 29 anos, vendedor. "
+            "Queixa: febre de 39,5°C há 4 dias, mialgia intensa, cefaleia retro-orbitária e manchas vermelhas no corpo desde ontem. "
+            "Detalhes (só revele se perguntado): hoje a febre começou a baixar, mas começou a sentir uma dor forte na barriga e teve dois vômitos persistentes; vários vizinhos no bairro tiveram dengue recentemente; nega tosse ou dor de garganta; sem alergias. "
+            "REGRAS: Responda abatido e com dor abdominal. Só conte sobre a dor abdominal intensa e vômitos (sinais de alarme) se perguntado."
+        ),
+        "gabarito": "Diagnóstico: Dengue com Sinais de Alarme (Grupo C). Pistas essenciais: febre aguda + mialgia + dor retro-orbitária + exantema + epidemiologia positiva, evoluindo na defervescência com dor abdominal intensa e vômitos persistentes. Conduta: hidratação venosa imediata conforme estadiamento (Grupo C), hemograma completo (hematócrito/plaquetas), evitar AINEs/AAS e internação/observação rigorosa.",
+    },
+    "Reumatologia": {
+        "icone": "🦴",
+        "cenario": "Ambulatório",
+        "descricao": "Poliartrite simétrica, rigidez matinal e sintomas autoimunes sistêmicos.",
+        "paciente": "Cláudia, 42 anos",
+        "primeira_fala": "Doutor(a), faz uns quatro meses que eu acordo com as juntas das mãos e dos punhos todas duras e inchadas.",
+        "prompt_sistema": (
+            "Você é Cláudia, 42 anos, bibliotecária. "
+            "Queixa: dor e inchaço nas pequenas articulações das mãos (metacarpofalângicas e interfalângicas proximais) e punhos, dos dois lados, há 4 meses. "
+            "Detalhes (só revele se perguntado): a rigidez pela manhã dura mais de 1 hora e melhora conforme movimenta as mãos ao longo do dia; sente fadiga leve; nega manchas no rosto ou queda de cabelo; mãe tem artrite reumatoide; sem alergias. "
+            "REGRAS: Responda detalhando a dificuldade para abotoar roupas pela manhã apenas se perguntada sobre rigidez matinal."
+        ),
+        "gabarito": "Diagnóstico: Artrite Reumatoide. Pistas essenciais: poliartrite crônica (> 6 semanas), simétrica, aditiva, acometendo pequenas articulações de mãos/punhos com rigidez matinal inflamatória (> 1 hora). Conduta: solicitar Fator Reumatoide (FR), Anti-CCP, VHS/PCR, radiografia de mãos e iniciar encaminhamento para DMARD (ex: Metotrexato).",
+    },
+    "Urologia": {
+        "icone": "🩺",
+        "cenario": "Consultório Urológico",
+        "descricao": "Sintomas do trato urinário inferior, rastreamento e saúde masculina.",
+        "paciente": "José Augusto, 64 anos",
+        "primeira_fala": "Doutor(a), minha esposa insistiu pra eu vir porque tô levantando umas cinco vezes toda noite pra ir no banheiro.",
+        "prompt_sistema": (
+            "Você é José Augusto, 64 anos, comerciante. "
+            "Queixa: noctúria (5x/noite), jato urinário fraco, esforço para iniciar a micção e sensação de que a bexiga não esvazia totalmente há 1 ano. "
+            "Detalhes (só revele se perguntado): nega ardência para urinar, febre, sangue na urina ou perda de peso; nunca fez exame de próstata; toma remédio apenas para pressão alta; sem alergias. "
+            "REGRAS: Responda com certo constrangimento inicial, detalhando o jato fraco e ausência de sinais de infecção/sangramento se perguntado."
+        ),
+        "gabarito": "Diagnóstico: Hiperplasia Prostática Benigna (HPB) sintomática. Pistas essenciais: sintomas obstrutivos e irritativos do trato urinário inferior (LUTS) progressivos em homem > 50 anos, sem hematúria ou sinais infecciosos. Conduta: toque retal, solicitar PSA total, exame de urina (EAS), creatinina e ultrassonografia de vias urinárias/próstata; avaliar alfa-bloqueador (ex: Tansulosina).",
+    },
+    "Hematologia": {
+        "icone": "🩸",
+        "cenario": "Ambulatório",
+        "descricao": "Investigação de síndrome anêmica, sangramentos e carências nutricionais.",
+        "paciente": "Patrícia, 35 anos",
+        "primeira_fala": "Doutor(a), tô me sentindo muito fraca, com falta de ar quando subo escada e todo mundo diz que eu tô branca igual papel.",
+        "prompt_sistema": (
+            "Você é Patrícia, 35 anos, contadora. "
+            "Queixa: fadiga intensa, dispneia aos esforços, tontura ao levantar e palidez progressiva há 3 meses. "
+            "Detalhes (só revele se perguntado): tem fluxo menstrual extremamente intenso com coágulos todo mês (menorragia) por causa de miomas; sente vontade estranha de mastigar gelo (pagofagia) e unhas quebradiças; alimentação normal; sem alergias. "
+            "REGRAS: Responda com voz cansada. Só conte sobre a menstruação intensa e a vontade de comer gelo se perguntada."
+        ),
+        "gabarito": "Diagnóstico: Anemia Ferropriva (secundária a hipermenorreia/sangramento uterino anormal). Pistas essenciais: síndrome anêmica clássica, perda sanguínea crônica menstrual e sinais de ferropenia (pagofagia, unhas quebradiças). Conduta: solicitar hemograma completo, ferritina sérica, ferro sérico, saturação de transferrina, iniciar reposição de sulfato ferroso e investigar/tratar causa ginecológica.",
+    },
+    "Geriatria": {
+        "icone": "👴",
+        "cenario": "Ambulatório Geriátrico",
+        "descricao": "Polifarmácia, quedas no idoso, avaliação funcional e cognitiva.",
+        "paciente": "Dona Nair, 79 anos (acompanhada pelo neto, Bruno)",
+        "primeira_fala": "Oi doutor(a), trouxe minha avó porque ela levou um tombo no corredor de casa ontem à noite quando levantou pra ir ao banheiro.",
+        "prompt_sistema": (
+            "Você é Bruno, neto de Dona Nair (79 anos). "
+            "Queixa: queda da própria altura ontem à madrugada sem bater a cabeça, mas ela tem ficado mais sonolenta e tonta ao levantar. "
+            "Detalhes (só revele se perguntado): toma 8 remédios por dia, incluindo clonazepam (rivotril) que começou há 2 semanas para dormir e dois remédios para pressão; não teve dor no peito nem desmaio súbito; sem alergias. "
+            "REGRAS: Responda atencioso como o neto. Só revele o uso recente de benzodiazepínico (clonazepam) e a polifarmácia se perguntado sobre medicações."
+        ),
+        "gabarito": "Diagnóstico: Queda no Idoso secundária a Polifarmácia / Uso de Benzodiazepínico e provável Hipotensão Ortostática. Pistas essenciais: início recente de clonazepam (medicamento potencialmente inapropriado para idosos), múltiplos anti-hipertensivos e queda noturna. Conduta: desprescrição gradual do benzodiazepínico, aferir PA deitada e em pé (hipotensão postural), revisar prescrição e orientar prevenção ambiental de quedas.",
+    },
+    "Oncologia": {
+        "icone": "🎗️",
+        "cenario": "Ambulatório",
+        "descricao": "Investigação de sintomas constitucionais, perda ponderal e rastreamento.",
+        "paciente": "Marcos, 59 anos",
+        "primeira_fala": "Doutor(a), vim consultar porque tô com uma tosse seca que não passa faz dois meses e perdi bastante peso sem fazer dieta.",
+        "prompt_sistema": (
+            "Você é Marcos, 59 anos, pedreiro. "
+            "Queixa: tosse persistente há 2 meses, perda de 8 kg no período, falta de apetite e cansaço. "
+            "Detalhes (só revele se perguntado): fumou 2 maços de cigarro por dia durante 38 anos; notou raias de sangue no escarro (hemoptise) na última semana; nega febre noturna ou contato com tuberculose; sem alergias. "
+            "REGRAS: Responda de forma simples e realista. Só conte sobre a carga tabágica alta e o sangue no escarro se perguntado."
+        ),
+        "gabarito": "Diagnóstico: Suspeita de Neoplasia Pulmonar (Câncer de Pulmão). Pistas essenciais: tosse crônica > 3 semanas em tabagista pesado (> 30 maços-ano), hemoptise e síndrome consumptiva (perda ponderal inexplicada). Conduta: solicitar Tomografia Computadorizada de Tórax com contraste com urgência, exames gerais e encaminhamento rápido para pneumologia/oncologia para broncoscopia/biópsia.",
+    },
+    "Medicina de Emergência": {
+        "icone": "🚑",
+        "cenario": "Sala Vermelha",
+        "descricao": "Reação alérgica grave, instabilidade aguda e conduta imediata salvadora.",
+        "paciente": "Eduardo, 24 anos",
+        "primeira_fala": "Doutor(a)... tô com o corpo todo coçando, minha garganta tá fechando e tô ficando muito tonto depois que comi um camarão agora pouco!",
+        "prompt_sistema": (
+            "Você é Eduardo, 24 anos. "
+            "Queixa: início há 10 minutos após ingerir camarão de urticária generalizada, inchaço nos lábios, rouquidão/sensação de fechamento da garganta, chiado no peito e tontura forte. "
+            "Detalhes (só revele se perguntado): já teve alergia leve a frutos do mar no passado, mas nunca tinha fechado a garganta; não tem caneta de adrenalina; sem outras doenças. "
+            "REGRAS: Responda com frases curtas e voz rouca, demonstrando urgência. Só conte o histórico prévio se perguntado."
+        ),
+        "gabarito": "Diagnóstico: Anafilaxia / Choque Anafilático. Pistas essenciais: exposição aguda a alérgeno conhecido + acometimento cutâneo-mucoso (urticária/angioedema) + comprometimento respiratório (edema de glote/broncoespasmo) e hipotensão/tontura. Conduta IMEDIATA: Adrenalina (Epinefrina) intramuscular 0,3 a 0,5 mg no vasto lateral da coxa imediatamente, oxigênio em alto fluxo, acesso venoso com cristaloide e monitoramento.",
+    },
+    "Clínica Médica": {
+        "icone": "🩺",
+        "cenario": "Ambulatório Geral",
+        "descricao": "Investigação de fadiga crônica, ganho de peso e sintomas sistêmicos.",
+        "paciente": "Vanessa, 44 anos",
+        "primeira_fala": "Doutor(a), tô me sentindo muito inchada, ganhei peso mesmo comendo pouco e tô com um sono e um frio fora do normal.",
+        "prompt_sistema": (
+            "Você é Vanessa, 44 anos, secretária. "
+            "Queixa: fadiga, sonolência excessiva, intolerância ao frio, ganho de 4 kg e intestino preso (constipação) nos últimos 6 meses. "
+            "Detalhes (só revele se perguntado): pele ficou muito seca, cabelo caindo bastante e menstruação desregulada; irmã tem problema na tireoide; sem alergias. "
+            "REGRAS: Responda num ritmo calmo. Só detalhe a constipação, queda de cabelo e histórico familiar tireoidiano se perguntada."
+        ),
+        "gabarito": "Diagnóstico: Hipotireoidismo Primário. Pistas essenciais: sintomas clássicos de hipometabolismo (astenia, intolerância ao frio, ganho ponderal, constipação intestinal, pele seca, queda capilar) e história familiar de doença tireoidiana. Conduta: solicitar TSH e T4 livre (e anti-TPO) e iniciar reposição com Levotiroxina em jejum conforme confirmação laboratorial.",
+    },
+}
 
-def chamar_gemini(contents, instrucao_sistema, temperatura=0.7):
+
+# 5. Funções de Comunicação com a IA (Paciente e Preceptor)
+def gerar_resposta_ia(contents, instrucao_sistema, temperatura=0.7):
     ultimo_erro = None
     for modelo in MODELOS_FLASH:
         try:
@@ -310,19 +470,84 @@ def chamar_gemini(contents, instrucao_sistema, temperatura=0.7):
     raise ultimo_erro
 
 
+def avaliar_consulta(especialidade, dados_caso, mensagens, hipotese, conduta):
+    transcricao = []
+    for m in mensagens:
+        papel = "Estudante" if m["role"] == "user" else f"Paciente ({dados_caso['paciente']})"
+        transcricao.append(f"{papel}: {m['content']}")
+    texto_conversa = "\n".join(transcricao)
+
+    prompt_preceptor = f"""Você é um Preceptor Médico experiente avaliando a consulta de um estudante de saúde na especialidade de {especialidade}.
+
+CASO CLÍNICO E GABARITO OFICIAL:
+{dados_caso['gabarito']}
+
+TRANSCRIÇÃO DA CONSULTA REALIZADA PELO ESTUDANTE:
+{texto_conversa}
+
+RESPOSTA FINAL ENVIADA PELO ESTUDANTE:
+- Hipótese Diagnóstica: {hipotese}
+- Conduta Inicial: {conduta if conduta.strip() else "Não informada"}
+
+Avalie o desempenho do estudante de forma construtiva, técnica e objetiva em português, usando exatamente esta estrutura em Markdown:
+
+### 🎯 Veredito do Diagnóstico
+Diga claramente se o estudante **ACERTOU**, **ACERTOU PARCIALMENTE** ou **ERROU**, e apresente o **Gabarito Oficial** do caso.
+
+### ⭐ Nota da Anamnese: X.X / 10
+Atribua uma nota justa de 0 a 10 considerando as perguntas feitas durante a entrevista, a precisão do diagnóstico e a conduta proposta.
+
+### ✅ Pontos Bem Investigados
+Liste em tópicos o que o estudante perguntou bem durante a conversa.
+
+### 🔍 O que Faltou Perguntar
+Liste em tópicos as perguntas importantes do gabarito que o estudante deixou de investigar (como alergias, antecedentes, hábitos ou sinais de alarme).
+
+### 💊 Feedback sobre a Conduta Inicial
+Comente se a conduta sugerida pelo estudante está adequada ou o que deveria ser priorizado na prática clínica.
+"""
+    contents = [
+        types.Content(
+            role="user",
+            parts=[types.Part.from_text(text="Por favor, avalie minha consulta clínica e meu diagnóstico final.")],
+        )
+    ]
+    return gerar_resposta_ia(contents, prompt_preceptor, temperatura=0.3)
+
+
+# 6. Gerenciamento de Estado da Navegação
+if "especialidade_ativa" not in st.session_state:
+    st.session_state.especialidade_ativa = None
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+if "parecer_preceptor" not in st.session_state:
+    st.session_state.parecer_preceptor = None
+
+
+def iniciar_consulta(especialidade):
+    st.session_state.especialidade_ativa = especialidade
+    st.session_state.parecer_preceptor = None
+    st.session_state.messages = [
+        {
+            "role": "assistant",
+            "content": CASOS_CLINICOS[especialidade]["primeira_fala"],
+        }
+    ]
+
+
 # ==============================================================================
-# TELA 1: SELEÇÃO INICIAL DE ESPECIALIDADE
+# TELA 1: SELEÇÃO DE ESPECIALIDADES (LOBBY INICIAL)
 # ==============================================================================
 if st.session_state.especialidade_ativa is None:
     st.markdown(
         f"""
-        <div class="anamnese-banner">
-            <div class="anamnese-badges">
-                <span class="badge-pill">✨ SIMULADOR DE PACIENTE VIRTUAL</span>
-                <span class="badge-pill">🎓 {len(casos_especialidades)} ESPECIALIDADES DISPONÍVEIS</span>
+        <div class="hero-banner">
+            <div class="hero-badges">
+                <span class="hero-badge">✨ SIMULADOR DE PACIENTE VIRTUAL</span>
+                <span class="hero-badge">🩺 {len(CASOS_CLINICOS)} ESPECIALIDADES DISPONÍVEIS</span>
             </div>
-            <h1 class="anamnese-title">🩺 AnamnesIA</h1>
-            <p class="anamnese-subtitle">
+            <div class="hero-title">🩺 AnamnesIA</div>
+            <p class="hero-subtitle">
                 Selecione abaixo a especialidade médica que você deseja treinar hoje para iniciar o atendimento com um paciente virtual.
             </p>
         </div>
@@ -334,184 +559,166 @@ if st.session_state.especialidade_ativa is None:
     with col_titulo:
         st.subheader("Escolha a especialidade para a anamnese:")
     with col_busca:
-        termo_busca = st.text_input(
-            "Filtrar especialidade",
+        busca = st.text_input(
+            "Buscar especialidade",
             placeholder="🔍 Buscar especialidade ou cenário...",
             label_visibility="collapsed",
-        ).strip().lower()
+        )
 
-    lista_especialidades = [
-        esp
-        for esp, info in casos_especialidades.items()
-        if not termo_busca
-        or termo_busca in esp.lower()
-        or termo_busca in info["ambiente"].lower()
-        or termo_busca in info["descricao"].lower()
-    ]
+    especialidades_filtradas = {
+        nome: dados
+        for nome, dados in CASOS_CLINICOS.items()
+        if busca.lower() in nome.lower()
+        or busca.lower() in dados["cenario"].lower()
+        or busca.lower() in dados["descricao"].lower()
+    }
 
-    if not lista_especialidades:
-        st.info("Nenhuma especialidade encontrada com esse termo. Tente limpar a busca.")
+    if not especialidades_filtradas:
+        st.info("Nenhuma especialidade encontrada com esse termo. Limpe a busca para ver todas as 24 opções.")
     else:
-        for i in range(0, len(lista_especialidades), 3):
+        lista_itens = list(especialidades_filtradas.items())
+        for i in range(0, len(lista_itens), 3):
             cols = st.columns(3)
-            for j, esp in enumerate(lista_especialidades[i : i + 3]):
-                info = casos_especialidades[esp]
-                with cols[j]:
-                    with st.container(border=True):
-                        st.markdown(f"### {info['icone']} {esp}")
-                        st.caption(f"📍 **Cenário:** {info['ambiente']}")
-                        st.write(info["descricao"])
-                        if st.button(
-                            "Iniciar Atendimento ➔",
-                            key=f"btn_{esp}",
-                            type="primary",
-                            use_container_width=True,
-                        ):
-                            st.session_state.especialidade_ativa = esp
-                            st.session_state.messages = [{
-                                "role": "assistant",
-                                "content": info["primeira_fala"],
-                            }]
-                            st.session_state.avaliacao_final = None
-                            st.rerun()
+            for idx, (nome, dados) in enumerate(lista_itens[i : i + 3]):
+                with cols[idx]:
+                    st.markdown(
+                        f"""
+                        <div class="spec-card">
+                            <div class="spec-title">{dados['icone']} {nome}</div>
+                            <div class="spec-scenario">📍 Cenário: {dados['cenario']}</div>
+                            <div class="spec-desc">{dados['descricao']}</div>
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
+                    if st.button(
+                        "Iniciar Atendimento ➔",
+                        key=f"btn_{nome}",
+                        type="primary",
+                        use_container_width=True,
+                    ):
+                        iniciar_consulta(nome)
+                        st.rerun()
 
 # ==============================================================================
-# TELA 2: CONSULTÓRIO / CHAT DE ANAMNESE + AVALIAÇÃO DO PRECEPTOR
+# TELA 2: CONSULTÓRIO VIRTUAL (CHAT + DIAGNÓSTICO FINAL VISÍVEL NA TELA)
 # ==============================================================================
 else:
     esp_atual = st.session_state.especialidade_ativa
-    dados_caso = casos_especialidades[esp_atual]
+    dados_caso = CASOS_CLINICOS[esp_atual]
 
-    # Barra lateral da consulta e formulário de encerramento
+    # Barra lateral opcional com roteiro rápido de estudo
     with st.sidebar:
+        st.markdown("## 🩺 AnamnesIA")
+        st.caption("Guia Rápido de Anamnese")
         st.markdown(
             """
-            <div style="
-                background: linear-gradient(135deg, #0B3954 0%, #0D9488 100%);
-                padding: 1rem 1.1rem;
-                border-radius: 12px;
-                color: white;
-                margin-bottom: 1rem;
-            ">
-                <div style="font-size: 1.25rem; font-weight: 700;">🩺 AnamnesIA</div>
-                <div style="font-size: 0.82rem; opacity: 0.9;">Treinamento clínico seguro com IA</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
+            **Roteiro sugerido:**
+            1. **Queixa Principal e HDA:** Início, duração, intensidade, irradiação, fatores de melhora/piora.
+            2. **Antecedentes Pessoais:** Doenças crônicas, cirurgias, internações.
+            3. **Medicações e Alergias:** Uso contínuo e alergias a remédios.
+            4. **Hábitos e Família:** Tabagismo, etilismo, histórico familiar.
+            """
         )
 
-        st.markdown(f"**Especialidade:** {dados_caso['icone']} {esp_atual}")
-        st.markdown(f"**Cenário:** {dados_caso['ambiente']}")
-        st.divider()
-
-        # Formulário de Avaliação Final pelo Preceptor IA
-        st.subheader("🎓 Encerrar e Avaliar")
-        with st.form("form_avaliacao_final"):
-            hipotese_aluno = st.text_input(
-                "Qual a sua Hipótese Diagnóstica?",
-                placeholder="Ex: Infarto Agudo do Miocárdio",
-            )
-            conduta_aluno = st.text_area(
-                "Qual a sua Conduta / Exames iniciais?",
-                placeholder="Ex: Solicitar ECG, troponina, monitorizar...",
-                height=90,
-            )
-            btn_avaliar = st.form_submit_button(
-                "✅ Conferir Diagnóstico",
-                type="primary",
-                use_container_width=True,
-            )
-
-        if btn_avaliar:
-            if not hipotese_aluno.strip():
-                st.warning("Digite sua hipótese diagnóstica antes de encerrar.")
-            else:
-                with st.spinner("O Preceptor está corrigindo sua consulta..."):
-                    transcricao = "\n".join(
-                        f"{'Estudante' if m['role'] == 'user' else 'Paciente'}: {m['content']}"
-                        for m in st.session_state.messages
-                    )
-                    prompt_preceptor = (
-                        f"ESPECIALIDADE: {esp_atual}\n"
-                        f"GABARITO OFICIAL DO CASO: {dados_caso['gabarito']}\n\n"
-                        f"TRANSCRIÇÃO DA CONSULTA REALIZADA PELO ESTUDANTE:\n{transcricao}\n\n"
-                        f"HIPÓTESE DIAGNÓSTICA DO ESTUDANTE: {hipotese_aluno}\n"
-                        f"CONDUTA SUGERIDA PELO ESTUDANTE: {conduta_aluno or 'Não informada'}\n\n"
-                        "Avalie o desempenho do estudante de forma clara, didática e encorajadora, seguindo exatamente estes tópicos:\n"
-                        "1. **Veredito do Diagnóstico:** Diga claramente se acertou, acertou parcialmente ou errou, e revele o diagnóstico oficial.\n"
-                        "2. **Nota da Anamnese (0 a 10):** Avalie a qualidade da investigação feita no chat.\n"
-                        "3. **O que você investigou bem:** Perguntas certas feitas pelo estudante.\n"
-                        "4. **O que faltou perguntar:** Pistas importantes do gabarito que o estudante não perguntou ao paciente.\n"
-                        "5. **Feedback da Conduta:** Compare a conduta sugerida com o esperado."
-                    )
-                    instrucao_preceptor = (
-                        "Você é um professor e preceptor médico experiente avaliando uma simulação clínica (OSCE). "
-                        "Seja objetivo, construtivo e baseie sua correção estritamente no gabarito e na transcrição fornecidos."
-                    )
-                    try:
-                        resultado = chamar_gemini(
-                            prompt_preceptor,
-                            instrucao_preceptor,
-                            temperatura=0.3,
-                        )
-                        st.session_state.avaliacao_final = resultado
-                    except Exception as e:
-                        st.error(f"Erro ao gerar avaliação: {e}")
-
-        st.divider()
-
-        if st.button("🔄 Reiniciar Consulta", use_container_width=True):
-            st.session_state.messages = [{
-                "role": "assistant",
-                "content": dados_caso["primeira_fala"],
-            }]
-            st.session_state.avaliacao_final = None
-            st.rerun()
-
+    # Botões de navegação no topo da tela principal (visíveis no PC e no celular)
+    col_voltar, col_reiniciar = st.columns(2)
+    with col_voltar:
         if st.button("⬅️ Trocar Especialidade", use_container_width=True):
             st.session_state.especialidade_ativa = None
             st.session_state.messages = []
-            st.session_state.avaliacao_final = None
+            st.session_state.parecer_preceptor = None
+            st.rerun()
+    with col_reiniciar:
+        if st.button("🔄 Reiniciar Consulta", use_container_width=True):
+            iniciar_consulta(esp_atual)
             st.rerun()
 
-    # Faixa superior dinâmica com a especialidade selecionada
+    # Faixa superior da consulta ativa
     st.markdown(
         f"""
-        <div class="anamnese-banner">
-            <div class="anamnese-badges">
-                <span class="badge-pill">{dados_caso['icone']} {esp_atual.upper()}</span>
-                <span class="badge-pill">🏥 {dados_caso['ambiente']}</span>
+        <div class="hero-banner" style="padding: 1.3rem 1.8rem; margin-top: 0.5rem;">
+            <div class="hero-badges">
+                <span class="hero-badge">{dados_caso['icone']} {esp_atual.upper()}</span>
+                <span class="hero-badge">📍 {dados_caso['cenario'].upper()}</span>
+                <span class="hero-badge">🧑 PACIENTE: {dados_caso['paciente'].upper()}</span>
             </div>
-            <h1 class="anamnese-title">🩺 AnamnesIA</h1>
-            <p class="anamnese-subtitle">
-                Atendimento em andamento. Converse com o paciente e, ao terminar, preencha seu diagnóstico na barra lateral para receber a correção.
+            <div class="hero-title" style="font-size: 1.65rem;">Consultório Virtual — AnamnesIA</div>
+            <p class="hero-subtitle">
+                Converse com o paciente para investigar os sintomas. Quando estiver pronto, envie seu diagnóstico final logo abaixo do chat.
             </p>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-    # Exibe o boletim de avaliação do Preceptor caso o estudante já tenha encerrado
-    if st.session_state.avaliacao_final:
+    # Exibe o Parecer do Preceptor no topo quando o estudante finaliza a consulta
+    if st.session_state.parecer_preceptor:
         with st.container(border=True):
-            st.subheader("📋 Parecer do Preceptor (Resultado da Consulta)")
-            st.markdown(st.session_state.avaliacao_final)
-            if st.button("Fechar Parecer e Continuar Conversando"):
-                st.session_state.avaliacao_final = None
+            st.success("✅ **Consulta Finalizada! Confira abaixo a avaliação do Preceptor Virtual:**")
+            st.markdown(st.session_state.parecer_preceptor)
+            if st.button("🩺 Treinar Outra Especialidade", type="primary", use_container_width=True):
+                st.session_state.especialidade_ativa = None
+                st.session_state.messages = []
+                st.session_state.parecer_preceptor = None
                 st.rerun()
 
-    # Exibe o histórico de mensagens na tela
+    # Histórico da conversa
     for message in st.session_state.messages:
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
 
-    # Entrada do usuário (estudante de saúde)
-    if prompt := st.chat_input("Digite sua pergunta de anamnese..."):
+    # Área de Diagnóstico Final diretamente na tela principal (acima do chat_input)
+    st.markdown(
+        """
+        <div class="diag-callout">
+            🎓 <strong>Já coletou informações suficientes?</strong> Abra a caixa abaixo para enviar seu diagnóstico final e receber a nota do Preceptor.
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    with st.expander("🎓 ENVIAR DIAGNÓSTICO FINAL E CONDUTA (CLIQUE AQUI)", expanded=False):
+        with st.form("form_diagnostico_principal"):
+            hipotese = st.text_input(
+                "1. Qual é a sua Hipótese Diagnóstica principal?",
+                placeholder="Ex: Infarto Agudo do Miocárdio, Crise de Pânico, Apendicite Aguda...",
+            )
+            conduta = st.text_area(
+                "2. Qual é a sua Conduta Inicial (exames, medicações ou encaminhamento)?",
+                placeholder="Ex: Solicitar ECG em 10 min, monitorização, analgesia, exames laboratoriais...",
+                height=85,
+            )
+            enviar_diag = st.form_submit_button(
+                "✅ Finalizar Consulta e Ver Nota do Preceptor",
+                type="primary",
+                use_container_width=True,
+            )
+
+        if enviar_diag:
+            if not hipotese.strip():
+                st.warning("⚠️ Digite sua hipótese diagnóstica antes de enviar para o Preceptor.")
+            else:
+                with st.spinner("🩺 O Preceptor Virtual está avaliando toda a sua entrevista e seu diagnóstico..."):
+                    try:
+                        resultado = avaliar_consulta(
+                            esp_atual,
+                            dados_caso,
+                            st.session_state.messages,
+                            hipotese,
+                            conduta,
+                        )
+                        st.session_state.parecer_preceptor = resultado
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"Erro ao gerar avaliação do Preceptor: {e}")
+
+    # Caixa de digitação do chat
+    if prompt := st.chat_input("Digite sua pergunta de anamnese para o paciente..."):
         st.session_state.messages.append({"role": "user", "content": prompt})
         with st.chat_message("user"):
             st.markdown(prompt)
 
-        # Monta o histórico a partir da primeira pergunta do aluno (role="user")
         contents = []
         for m in st.session_state.messages[1:]:
             api_role = "user" if m["role"] == "user" else "model"
@@ -524,19 +731,14 @@ else:
 
         instrucao_completa = (
             f"{dados_caso['prompt_sistema']}\n\n"
-            f"Contexto: Você acabou de iniciar a consulta dizendo ao estudante: "
-            f"\"{dados_caso['primeira_fala']}\""
+            f"Contexto: Você iniciou a consulta dizendo: \"{dados_caso['primeira_fala']}\""
         )
 
         with st.chat_message("assistant"):
-            with st.spinner("O paciente está digitando..."):
+            with st.spinner("O paciente está respondendo..."):
                 try:
-                    resposta_ia = chamar_gemini(
-                        contents, instrucao_completa, temperatura=0.7
-                    )
+                    resposta_ia = gerar_resposta_ia(contents, instrucao_completa, temperatura=0.7)
                     st.markdown(resposta_ia)
-                    st.session_state.messages.append(
-                        {"role": "assistant", "content": resposta_ia}
-                    )
+                    st.session_state.messages.append({"role": "assistant", "content": resposta_ia})
                 except Exception as e:
                     st.error(f"Ocorreu um erro ao falar com a IA: {e}")
