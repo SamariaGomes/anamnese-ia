@@ -708,34 +708,39 @@ def criar_caso_por_nivel(especialidade, nivel):
     info_esp = ESPECIALIDADES[especialidade]
     info_nivel = NIVEIS_DIFICULDADE[nivel]
 
-    prompt_gerador = f"""Crie um caso clínico original e realista em português para treinamento de anamnese médica.
+    prompt_gerador = f"""Gere um caso clínico COMPLETAMENTE NOVO, ORIGINAL e DIFERENTE para treinamento de anamnese médica.
 
-ESPECIALIDADE: {especialidade} (Cenário: {info_esp['cenario']})
+ESPECIALIDADE: {especialidade} (Cenário de atendimento: {info_esp['cenario']})
 NÍVEL DE DIFICULDADE: {nivel}
-DIRETRIZ DO NÍVEL: {info_nivel['instrucao_ia']}
+DIRETRIZ TÉCNICA DO NÍVEL: {info_nivel['instrucao_ia']}
 
-Varie o perfil do paciente (nome brasileiro comum, idade, profissão, quadro clínico compatível com a especialidade e nível solicitado).
+IMPORTANTE PARA GARANTIR VARIEDADE TOTAL:
+- Crie um paciente com nome, idade, profissão e história de vida totalmente inéditos e criativos.
+- O quadro clínico, os sintomas de apresentação e as pistas ocultas devem ser diferentes de casos clássicos repetitivos, exigindo raciocínio clínico real.
+- Garanta que o perfil emocional e a forma de falar do paciente sejam realistas.
+
 Retorne EXCLUSIVAMENTE um objeto JSON válido com estas exatas 5 chaves:
 {{
-  "titulo_caso": "Título curto do cenário clínico sem entregar o diagnóstico (ex: Dor Abdominal Aguda no Pronto-Socorro)",
-  "paciente": "Nome e idade (e acompanhante se for pediatria/idoso dependente)",
+  "titulo_caso": "Título curto e descritivo do cenário clínico sem entregar o diagnóstico (ex: Dispneia Súbita no Plantão)",
+  "paciente": "Nome completo fictício e idade (e acompanhante se for pediatria ou idoso dependente)",
   "primeira_fala": "Fala inicial natural e realista do paciente ao entrar no consultório, apresentando apenas a queixa principal sem dar o diagnóstico",
-  "prompt_sistema": "Instruções completas em primeira pessoa para a IA atuar como esse paciente: idade, profissão, sintomas detalhados, antecedentes pessoais/familiares, medicações, alergias, hábitos, estado emocional e a regra estrita de NUNCA revelar o diagnóstico nem entregar pistas ocultas sem o estudante perguntar.",
+  "prompt_sistema": "Instruções completas em primeira pessoa para a IA atuar como esse paciente: idade, profissão, sintomas detalhados, antecedentes pessoais/familiares, medicações em uso, alergias, hábitos de vida, estado emocional e a regra estrita de NUNCA revelar o diagnóstico nem entregar pistas ocultas sem o estudante perguntar.",
   "gabarito": "Diagnóstico oficial completo, pistas essenciais que o estudante deveria descobrir na anamnese e conduta inicial esperada."
 }}
 """
     contents = [
         types.Content(
             role="user",
-            parts=[types.Part.from_text(text="Gere o caso clínico em JSON conforme as instruções.")],
+            parts=[types.Part.from_text(text="Gere um caso clínico único e inédito em JSON conforme as instruções.")],
         )
     ]
 
     try:
+        # Temperatura 0.95 garante máxima criatividade e variedade a cada clique
         resposta_bruta = gerar_resposta_ia(
             contents,
-            "You are a medical professor expert in OSCE clinical simulation. Respond only with valid JSON.",
-            temperatura=0.85,
+            "You are an expert medical professor creating unique OSCE clinical cases. Respond only with valid JSON.",
+            temperatura=0.95,
             json_mode=True,
         )
         texto_limpo = resposta_bruta.strip()
@@ -858,7 +863,7 @@ if "pagina_atual" not in st.session_state:
 
 
 def iniciar_consulta_com_nivel(especialidade, nivel):
-    with st.spinner("🩺 Conectando ao consultório virtual e gerando o caso clínico..."):
+    with st.spinner("🩺 Sorteando um novo caso clínico exclusivo com a IA..."):
         caso = criar_caso_por_nivel(especialidade, nivel)
     
     st.session_state.nivel_ativo = nivel
@@ -873,7 +878,7 @@ def iniciar_consulta_com_nivel(especialidade, nivel):
 
 
 # ==============================================================================
-# BARRA LATERAL LIMPA (Apenas Logotipo e Guia Rápido, sem menus escondidos)
+# BARRA LATERAL LIMPA (Apenas Logotipo e Guia Rápido)
 # ==============================================================================
 with st.sidebar:
     if os.path.exists("logotipo.jpg"):
@@ -895,7 +900,7 @@ with st.sidebar:
 
 
 # ==============================================================================
-# NAVEGAÇÃO PRINCIPAL VISÍVEL NO TOPO DA TELA (Sem abas ocultas)
+# NAVEGAÇÃO PRINCIPAL VISÍVEL NO TOPO DA TELA
 # ==============================================================================
 col_nav1, col_nav2 = st.columns([1, 1])
 with col_nav1:
@@ -911,7 +916,7 @@ st.markdown("---")
 
 
 # ==============================================================================
-# TELA DE SUGESTÕES / FEEDBACK (Visível diretamente na escolha)
+# TELA DE SUGESTÕES / FEEDBACK (Direto para o seu e-mail via Formspree)
 # ==============================================================================
 if st.session_state.pagina_atual == "Sugestoes":
     st.markdown(
