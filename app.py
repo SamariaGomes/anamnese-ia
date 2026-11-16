@@ -37,7 +37,7 @@ MODELOS_FLASH = [
     "gemini-2.0-flash",
 ]
 
-# 3. Identidade Visual: Branco, Roxo Claro (Lavanda/Violeta) e Verde Esmeralda
+# 3. Identidade Visual: Branco, Roxo Lilás Suave e Verde Esmeralda Vibrante
 st.markdown(
     """
     <style>
@@ -54,7 +54,7 @@ st.markdown(
         border-right: 1.5px solid #DDD6FE;
     }
 
-    /* Títulos em Roxo Vibrante Claro e textos em Violeta Suave */
+    /* Títulos em Roxo Vibrante e textos em Violeta Suave */
     h1, h2, h3, h4 {
         color: #7C3AED !important;
     }
@@ -62,14 +62,14 @@ st.markdown(
         color: #3F3356 !important;
     }
 
-    /* Banner Hero em Degradê Roxo Claro -> Verde Esmeralda */
+    /* Banner Hero em Degradê Roxo Claro -> Verde Esmeralda Intenso */
     .hero-banner {
-        background: linear-gradient(135deg, #8B5CF6 0%, #A78BFA 48%, #10B981 100%);
+        background: linear-gradient(135deg, #8B5CF6 0%, #A78BFA 45%, #00B06B 100%);
         padding: 1.75rem 2rem;
         border-radius: 18px;
         color: #FFFFFF !important;
         margin-bottom: 1.4rem;
-        box-shadow: 0 10px 26px rgba(139, 92, 246, 0.22);
+        box-shadow: 0 10px 26px rgba(0, 176, 107, 0.22);
         border: 1px solid rgba(255, 255, 255, 0.45);
     }
     .hero-badges {
@@ -79,34 +79,34 @@ st.markdown(
         margin-bottom: 0.75rem;
     }
     .hero-badge {
-        background: rgba(255, 255, 255, 0.22);
-        border: 1px solid rgba(255, 255, 255, 0.45);
+        background: rgba(255, 255, 255, 0.24);
+        border: 1px solid rgba(255, 255, 255, 0.5);
         padding: 4px 13px;
         border-radius: 999px;
         font-size: 0.78rem;
         font-weight: 700;
         letter-spacing: 0.4px;
         color: #FFFFFF !important;
-        text-shadow: 0 1px 2px rgba(76, 29, 149, 0.18);
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
     }
     .hero-title {
         font-size: 2rem;
         font-weight: 800;
         margin: 0 0 0.35rem 0;
         color: #FFFFFF !important;
-        text-shadow: 0 2px 6px rgba(76, 29, 149, 0.18);
+        text-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
     }
     .hero-title span {
-        color: #D1FAE5 !important;
+        color: #E6FFFA !important;
     }
     .hero-subtitle {
         font-size: 0.98rem;
         color: #FFFFFF !important;
-        opacity: 0.97;
+        opacity: 0.98;
         margin: 0;
     }
 
-    /* Cards Brancos com Borda Lilás Clara e Destaque Verde */
+    /* Cards Brancos com Borda Lilás Clara e Destaque Verde Vibrante */
     .spec-card, .level-card {
         background-color: #FFFFFF;
         border: 1.5px solid #DDD6FE;
@@ -120,9 +120,9 @@ st.markdown(
     }
     .spec-card:hover, .level-card:hover {
         background-color: #FAF7FF;
-        border-color: #34D399;
-        border-top-color: #10B981;
-        box-shadow: 0 8px 22px rgba(16, 185, 129, 0.14);
+        border-color: #00B06B;
+        border-top-color: #00B06B;
+        box-shadow: 0 8px 22px rgba(0, 176, 107, 0.18);
         transform: translateY(-2px);
     }
     .level-card {
@@ -136,8 +136,8 @@ st.markdown(
     }
     .spec-scenario {
         display: inline-block;
-        background-color: #ECFDF5;
-        color: #059669 !important;
+        background-color: #E6FFFA;
+        color: #047857 !important;
         border: 1px solid #A7F3D0;
         border-radius: 999px;
         padding: 2px 10px;
@@ -151,26 +151,26 @@ st.markdown(
         line-height: 1.48;
     }
 
-    /* Botões Principais (Verde Esmeralda) */
+    /* Botões Principais (Verde Esmeralda Mais Forte e Vibrante) */
     button[kind="primary"], [data-testid="baseButton-primary"] {
-        background: linear-gradient(135deg, #10B981 0%, #059669 100%) !important;
+        background: linear-gradient(135deg, #00B06B 0%, #059669 100%) !important;
         color: #FFFFFF !important;
         border: none !important;
         border-radius: 10px !important;
         font-weight: 700 !important;
-        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.24) !important;
+        box-shadow: 0 4px 12px rgba(0, 176, 107, 0.3) !important;
         transition: all 0.2s ease !important;
     }
     button[kind="primary"]:hover, [data-testid="baseButton-primary"]:hover {
-        background: linear-gradient(135deg, #059669 0%, #047857 100%) !important;
-        box-shadow: 0 6px 16px rgba(16, 185, 129, 0.34) !important;
+        background: linear-gradient(135deg, #059669 100%, #047857 100%) !important;
+        box-shadow: 0 6px 16px rgba(0, 176, 107, 0.4) !important;
         transform: translateY(-1px);
     }
     button[kind="primary"] p, [data-testid="baseButton-primary"] p {
         color: #FFFFFF !important;
     }
 
-    /* Botões Secundários (Lavanda Suave com Borda Lilás e Texto Roxo Claro) */
+    /* Botões Secundários */
     button[kind="secondary"], [data-testid="baseButton-secondary"] {
         background-color: #F5F0FF !important;
         color: #7C3AED !important;
@@ -196,15 +196,15 @@ st.markdown(
         border-radius: 10px !important;
     }
     [data-testid="stTextInput"] input:focus, [data-testid="stTextArea"] textarea:focus {
-        border-color: #8B5CF6 !important;
-        box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.18) !important;
+        border-color: #00B06B !important;
+        box-shadow: 0 0 0 2px rgba(0, 176, 107, 0.2) !important;
     }
 
-    /* Mensagens do Chat (Cards Brancos com Detalhe Roxo Claro) */
+    /* Mensagens do Chat */
     [data-testid="stChatMessage"] {
         background-color: #FCFAFF !important;
         border: 1px solid #E9D5FF !important;
-        border-left: 4px solid #A78BFA !important;
+        border-left: 4px solid #00B06B !important;
         border-radius: 14px !important;
         padding: 1rem 1.2rem !important;
         margin-bottom: 0.75rem !important;
@@ -836,7 +836,7 @@ def abrir_modal_diagnostico(esp_atual, nivel_atual, dados_caso):
                     st.error(f"Erro ao gerar avaliação do Preceptor: {e}")
 
 
-# 8. Gerenciamento de Estado da Navegação (3 Etapas: Especialidade -> Nível -> Consultório)
+# 8. Gerenciamento de Estado da Navegação
 if "especialidade_ativa" not in st.session_state:
     st.session_state.especialidade_ativa = None
 if "nivel_ativo" not in st.session_state:
@@ -874,7 +874,9 @@ if st.session_state.especialidade_ativa is None:
                 <span class="hero-badge">🩺 {len(ESPECIALIDADES)} ESPECIALIDADES</span>
                 <span class="hero-badge">🎚️ 3 NÍVEIS DE DIFICULDADE</span>
             </div>
-            <div class="hero-title">🩺 Anamnes<span>IA</span></div>
+            <div class="hero-title" style="display: flex; align-items: center; gap: 12px;">
+                <span>🩺 Anamnes<span>IA</span></span>
+            </div>
             <p class="hero-subtitle">
                 Escolha uma especialidade médica abaixo e depois selecione o nível de dificuldade (Fácil, Médio ou Difícil) para iniciar seu atendimento.
             </p>
@@ -983,7 +985,7 @@ elif st.session_state.nivel_ativo is None:
                 st.rerun()
 
 # ==============================================================================
-# TELA 3: CONSULTÓRIO VIRTUAL (CHAT LIMPO + BOTÃO DE DIAGNÓSTICO NO TOPO)
+# TELA 3: CONSULTÓRIO VIRTUAL
 # ==============================================================================
 else:
     esp_atual = st.session_state.especialidade_ativa
@@ -992,7 +994,7 @@ else:
     dados_caso = st.session_state.caso_atual
 
     with st.sidebar:
-        st.markdown("## 🩺 AnamnesIA")
+        st.markdown("## 🧠 AnamnesIA")
         st.caption("Guia Rápido de Anamnese")
         st.markdown(
             """
@@ -1004,7 +1006,7 @@ else:
             """
         )
 
-    # Barra superior com navegação e botão evidente de Diagnóstico Final (fora do chat)
+    # Barra superior com navegação e botão evidente de Diagnóstico Final
     col_b1, col_b2, col_b3, col_b4 = st.columns([1, 1, 1, 1.35])
     with col_b1:
         if st.button("⬅️ Especialidades", use_container_width=True):
