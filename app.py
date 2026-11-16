@@ -1,5 +1,6 @@
 import json
 import os
+import requests
 import streamlit as st
 from dotenv import load_dotenv
 from google import genai
@@ -897,7 +898,7 @@ with st.sidebar:
 
 
 # ==============================================================================
-# TELA DE SUGESTÕES / FEEDBACK
+# TELA DE SUGESTÕES / FEEDBACK (Integrada com Formspree)
 # ==============================================================================
 if pagina_selecionada == "💡 Enviar Sugestão / Feedback":
     st.markdown(
@@ -929,22 +930,36 @@ if pagina_selecionada == "💡 Enviar Sugestão / Feedback":
             placeholder="Conte-nos o que você gostaria de ver na plataforma ou como podemos melhorá-la...",
             height=140
         )
-        enviar_sugestao = st.form_submit_button("📤 Enviar Sugestão", type="primary", use_container_width=True)
+        enviar_sugestao = st.form_submit_button("📤 Enviar Sugestão para a Desenvolvedora", type="primary", use_container_width=True)
 
     if enviar_sugestao:
         if not mensagem_feedback.strip():
             st.warning("⚠️ Por favor, escreva a sua sugestão antes de enviar.")
         else:
-            # Aqui você pode salvar em arquivo local, banco ou apenas exibir o sucesso para o usuário
-            st.success("🎉 **Sugestão enviada com sucesso!** Muito obrigado por contribuir para a evolução do AnamnesIA.")
-            st.balloons()
+            url_formspree = "[https://formspree.io/f/mwloljel](https://formspree.io/f/mwloljel)"
+            
+            dados_envio = {
+                "name": nome_usuario if nome_usuario else "Anônimo",
+                "tipo": tipo_feedback,
+                "message": mensagem_feedback,
+                "_subject": f"Novo Feedback no AnamnesIA: {tipo_feedback}"
+            }
+            
+            try:
+                resposta = requests.post(url_formspree, data=dados_envio)
+                if resposta.status_code == 200 or resposta.status_code == 201:
+                    st.success("🎉 **Sugestão enviada com sucesso!** O e-mail foi encaminhado para a equipe.")
+                    st.balloons()
+                else:
+                    st.error("❌ Ocorreu um erro ao enviar o feedback. Tente novamente mais tarde.")
+            except Exception as e:
+                st.error(f"❌ Erro de conexão ao enviar: {e}")
 
 
 # ==============================================================================
 # TELA 1: SELEÇÃO DE ESPECIALIDADES (SIMULADOR)
 # ==============================================================================
 elif st.session_state.especialidade_ativa is None:
-    # Exibe o logotipo junto com o título e a frase na cor branca no Banner Principal
     logo_html = ""
     if os.path.exists("logotipo.jpg"):
         import base64
