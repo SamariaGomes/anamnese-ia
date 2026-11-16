@@ -37,37 +37,40 @@ MODELOS_FLASH = [
     "gemini-2.0-flash",
 ]
 
-# 3. Identidade Visual: Branco, Roxo e Verde Esmeralda
+# 3. Identidade Visual: Branco, Roxo Claro (Lavanda/Violeta) e Verde Esmeralda
 st.markdown(
     """
     <style>
-    /* Fundo principal claro (Branco com leve toque lilás) */
+    /* Fundo principal branco com suave toque lilás pastel no topo */
     .stApp {
-        background: linear-gradient(180deg, #F7F5FC 0%, #FFFFFF 100%);
-        color: #1E0A3C;
+        background: linear-gradient(180deg, #F5F0FF 0%, #FFFFFF 32%, #FFFFFF 100%);
+        color: #3F3356;
     }
     header[data-testid="stHeader"] {
-        background: rgba(247, 245, 252, 0.88);
+        background: rgba(245, 240, 255, 0.88);
     }
     [data-testid="stSidebar"] {
         background-color: #FFFFFF;
-        border-right: 1.5px solid #E9D5FF;
+        border-right: 1.5px solid #DDD6FE;
     }
 
-    /* Tipografia geral em Roxo Profundo para máximo contraste sobre o branco */
-    h1, h2, h3, h4, .stMarkdown p, .stMarkdown li, label {
-        color: #1E0A3C !important;
+    /* Títulos em Roxo Vibrante Claro e textos em Violeta Suave */
+    h1, h2, h3, h4 {
+        color: #7C3AED !important;
+    }
+    .stMarkdown p, .stMarkdown li, label {
+        color: #3F3356 !important;
     }
 
-    /* Banner Hero em Degradê Roxo Real -> Verde Esmeralda */
+    /* Banner Hero em Degradê Roxo Claro -> Verde Esmeralda */
     .hero-banner {
-        background: linear-gradient(135deg, #2E1065 0%, #5B21B6 54%, #059669 100%);
+        background: linear-gradient(135deg, #8B5CF6 0%, #A78BFA 48%, #10B981 100%);
         padding: 1.75rem 2rem;
         border-radius: 18px;
         color: #FFFFFF !important;
         margin-bottom: 1.4rem;
-        box-shadow: 0 10px 26px rgba(91, 33, 182, 0.22);
-        border: 1px solid rgba(167, 243, 208, 0.35);
+        box-shadow: 0 10px 26px rgba(139, 92, 246, 0.22);
+        border: 1px solid rgba(255, 255, 255, 0.45);
     }
     .hero-badges {
         display: flex;
@@ -76,47 +79,50 @@ st.markdown(
         margin-bottom: 0.75rem;
     }
     .hero-badge {
-        background: rgba(255, 255, 255, 0.16);
-        border: 1px solid rgba(167, 243, 208, 0.45);
+        background: rgba(255, 255, 255, 0.22);
+        border: 1px solid rgba(255, 255, 255, 0.45);
         padding: 4px 13px;
         border-radius: 999px;
         font-size: 0.78rem;
         font-weight: 700;
         letter-spacing: 0.4px;
-        color: #ECFDF5 !important;
+        color: #FFFFFF !important;
+        text-shadow: 0 1px 2px rgba(76, 29, 149, 0.18);
     }
     .hero-title {
         font-size: 2rem;
         font-weight: 800;
         margin: 0 0 0.35rem 0;
         color: #FFFFFF !important;
+        text-shadow: 0 2px 6px rgba(76, 29, 149, 0.18);
     }
     .hero-title span {
-        color: #6EE7B7 !important;
+        color: #D1FAE5 !important;
     }
     .hero-subtitle {
         font-size: 0.98rem;
-        color: #F3E8FF !important;
-        opacity: 0.96;
+        color: #FFFFFF !important;
+        opacity: 0.97;
         margin: 0;
     }
 
-    /* Cards Brancos com Borda Roxa e Destaque Verde */
+    /* Cards Brancos com Borda Lilás Clara e Destaque Verde */
     .spec-card, .level-card {
         background-color: #FFFFFF;
-        border: 1.5px solid #E9D5FF;
-        border-top: 4px solid #7C3AED;
+        border: 1.5px solid #DDD6FE;
+        border-top: 4px solid #A78BFA;
         border-radius: 14px;
         padding: 1.15rem 1.25rem 0.75rem 1.25rem;
         margin-bottom: 0.55rem;
         min-height: 162px;
-        box-shadow: 0 4px 14px rgba(46, 16, 101, 0.05);
-        transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+        box-shadow: 0 4px 14px rgba(139, 92, 246, 0.07);
+        transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, background-color 0.18s ease;
     }
     .spec-card:hover, .level-card:hover {
-        border-color: #10B981;
-        border-top-color: #059669;
-        box-shadow: 0 8px 22px rgba(5, 150, 105, 0.13);
+        background-color: #FAF7FF;
+        border-color: #34D399;
+        border-top-color: #10B981;
+        box-shadow: 0 8px 22px rgba(16, 185, 129, 0.14);
         transform: translateY(-2px);
     }
     .level-card {
@@ -125,13 +131,13 @@ st.markdown(
     .spec-title {
         font-size: 1.15rem;
         font-weight: 800;
-        color: #2E1065 !important;
+        color: #7C3AED !important;
         margin-bottom: 0.35rem;
     }
     .spec-scenario {
         display: inline-block;
         background-color: #ECFDF5;
-        color: #047857 !important;
+        color: #059669 !important;
         border: 1px solid #A7F3D0;
         border-radius: 999px;
         padding: 2px 10px;
@@ -141,71 +147,71 @@ st.markdown(
     }
     .spec-desc {
         font-size: 0.92rem;
-        color: #3B2F54 !important;
+        color: #4B3F66 !important;
         line-height: 1.48;
     }
 
     /* Botões Principais (Verde Esmeralda) */
     button[kind="primary"], [data-testid="baseButton-primary"] {
-        background: linear-gradient(135deg, #059669 0%, #10B981 100%) !important;
+        background: linear-gradient(135deg, #10B981 0%, #059669 100%) !important;
         color: #FFFFFF !important;
         border: none !important;
         border-radius: 10px !important;
         font-weight: 700 !important;
-        box-shadow: 0 4px 12px rgba(5, 150, 105, 0.22) !important;
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.24) !important;
         transition: all 0.2s ease !important;
     }
     button[kind="primary"]:hover, [data-testid="baseButton-primary"]:hover {
-        background: linear-gradient(135deg, #047857 0%, #059669 100%) !important;
-        box-shadow: 0 6px 16px rgba(5, 150, 105, 0.32) !important;
+        background: linear-gradient(135deg, #059669 0%, #047857 100%) !important;
+        box-shadow: 0 6px 16px rgba(16, 185, 129, 0.34) !important;
         transform: translateY(-1px);
     }
     button[kind="primary"] p, [data-testid="baseButton-primary"] p {
         color: #FFFFFF !important;
     }
 
-    /* Botões Secundários (Branco com Borda e Texto Roxo) */
+    /* Botões Secundários (Lavanda Suave com Borda Lilás e Texto Roxo Claro) */
     button[kind="secondary"], [data-testid="baseButton-secondary"] {
-        background-color: #FFFFFF !important;
-        color: #5B21B6 !important;
+        background-color: #F5F0FF !important;
+        color: #7C3AED !important;
         border: 1.5px solid #C4B5FD !important;
         border-radius: 10px !important;
         font-weight: 700 !important;
         transition: all 0.2s ease !important;
     }
     button[kind="secondary"]:hover, [data-testid="baseButton-secondary"]:hover {
-        background-color: #F3E8FF !important;
-        border-color: #7C3AED !important;
-        color: #4C1D95 !important;
+        background-color: #EDE9FE !important;
+        border-color: #8B5CF6 !important;
+        color: #6D28D9 !important;
     }
     button[kind="secondary"] p, [data-testid="baseButton-secondary"] p {
-        color: #5B21B6 !important;
+        color: #7C3AED !important;
     }
 
     /* Inputs e Campos de Busca */
     [data-testid="stTextInput"] input, [data-testid="stTextArea"] textarea {
         background-color: #FFFFFF !important;
-        color: #1E0A3C !important;
+        color: #3F3356 !important;
         border: 1.5px solid #DDD6FE !important;
         border-radius: 10px !important;
     }
     [data-testid="stTextInput"] input:focus, [data-testid="stTextArea"] textarea:focus {
-        border-color: #059669 !important;
-        box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.18) !important;
+        border-color: #8B5CF6 !important;
+        box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.18) !important;
     }
 
-    /* Mensagens do Chat (Cards Brancos com Detalhe Roxo/Verde) */
+    /* Mensagens do Chat (Cards Brancos com Detalhe Roxo Claro) */
     [data-testid="stChatMessage"] {
-        background-color: #FFFFFF !important;
-        border: 1px solid #EDE9FE !important;
-        border-left: 4px solid #7C3AED !important;
+        background-color: #FCFAFF !important;
+        border: 1px solid #E9D5FF !important;
+        border-left: 4px solid #A78BFA !important;
         border-radius: 14px !important;
         padding: 1rem 1.2rem !important;
         margin-bottom: 0.75rem !important;
-        box-shadow: 0 2px 10px rgba(46, 16, 101, 0.04) !important;
+        box-shadow: 0 2px 10px rgba(139, 92, 246, 0.05) !important;
     }
     [data-testid="stChatMessage"] p, [data-testid="stChatMessage"] li {
-        color: #1E0A3C !important;
+        color: #3F3356 !important;
     }
 
     /* Barra inferior do chat */
@@ -215,7 +221,7 @@ st.markdown(
         border-radius: 14px !important;
     }
     [data-testid="stChatInput"] textarea {
-        color: #1E0A3C !important;
+        color: #3F3356 !important;
     }
     </style>
     """,
