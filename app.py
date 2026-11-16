@@ -651,7 +651,7 @@ ESPECIALIDADES = {
             "paciente": "Eduardo, 24 anos",
             "primeira_fala": "Doutor(a)... tô com o corpo todo coçando, minha garganta tá fechando e tô ficando muito tonto depois que comi um camarão agora pouco!",
             "prompt_sistema": (
-                "Você é Eduardo, 24 anos. "
+                "You are Eduardo, 24 anos. "
                 "Queixa: há 10 min após comer camarão iniciou urticária generalizada, edema labial, rouquidão, sibilos e tontura forte. "
                 "Detalhes (só revele se perguntado): já teve alergia leve a frutos do mar antes; sem outras doenças. "
                 "REGRAS: Responda com frases curtas e rouquidão, mostrando urgência."
@@ -787,7 +787,7 @@ Atribua uma nota justa de 0 a 10 considerando as perguntas feitas durante a entr
 Liste em tópicos o que o estudante perguntou bem durante a conversa.
 
 ### 🔍 O que Faltou Perguntar
-Liste em tópicos as perguntas importantes do gabarito que o estudante deixou de investigar (como alergias, antecedentes, medicações, hábitos ou sinais de alarme).
+Liste em tópicos as perguntas importantes do gabarito que o student deixou de investigar (como alergias, antecedentes, medicações, hábitos ou sinais de alarme).
 
 ### 💊 Feedback sobre a Conduta Inicial
 Comente se a conduta sugerida pelo estudante está adequada ou o que deveria ser priorizado na prática clínica.
@@ -818,7 +818,7 @@ def abrir_modal_diagnostico(esp_atual, nivel_atual, dados_caso):
         enviar_diag = st.form_submit_button(
             "✅ Confirmar e Ver Nota do Preceptor",
             type="primary",
-    _       use_container_width=True,
+            use_container_width=True,
         )
 
     if enviar_diag:
