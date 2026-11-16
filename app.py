@@ -634,7 +634,7 @@ ESPECIALIDADES = {
             "paciente": "Marcos, 59 anos",
             "primeira_fala": "Doutor(a), vim consultar porque tô com uma tosse seca que não passa faz dois meses e perdi bastante peso sem fazer dieta.",
             "prompt_sistema": (
-                "Você é Marcos, 59 anos, pedreiro. "
+                "You are Marcos, 59 anos, pedreiro. "
                 "Queixa: tosse persistente há 2 meses, perda de 8 kg, hiporexia e fadiga. "
                 "Detalhes (só revele se perguntado): fumou 2 maços/dia por 38 anos; raias de sangue no escarro (hemoptise) na última semana; nega febre noturna; sem alergias. "
                 "REGRAS: Só conte sobre a carga tabágica alta e hemoptise se perguntado."
@@ -787,7 +787,7 @@ Atribua uma nota justa de 0 a 10 considerando as perguntas feitas durante a entr
 Liste em tópicos o que o estudante perguntou bem durante a conversa.
 
 ### 🔍 O que Faltou Perguntar
-Liste em tópicos as perguntas importantes do gabarito que o student deixou de investigar (como alergias, antecedentes, medicações, hábitos ou sinais de alarme).
+Liste em tópicos as perguntas importantes do gabarito que o estudante deixou de investigar (como alergias, antecedentes, medicações, hábitos ou sinais de alarme).
 
 ### 💊 Feedback sobre a Conduta Inicial
 Comente se a conduta sugerida pelo estudante está adequada ou o que deveria ser priorizado na prática clínica.
@@ -868,26 +868,82 @@ def iniciar_consulta_com_nivel(especialidade, nivel):
 
 
 # ==============================================================================
-# TELA 1: SELEÇÃO DE ESPECIALIDADES
+# MENU LATERAL COM NAVEGAÇÃO DE PÁGINAS (Incluindo Sugestões)
 # ==============================================================================
-if st.session_state.especialidade_ativa is None:
-    # Exibe o logotipo na barra lateral
-    with st.sidebar:
-        if os.path.exists("logotipo.jpg"):
-            st.image("logotipo.jpg", use_container_width=True)
-        else:
-            st.markdown("## 🧠 AnamnesIA")
-        st.caption("Guia Rápido de Anamnese")
-        st.markdown(
-            """
-            **Roteiro sugerido:**
-            1. **Queixa Principal e HDA:** Início, duração, intensidade, irradiação.
-            2. **Antecedentes Pessoais:** Doenças crônicas, cirurgias.
-            3. **Medicações e Alergias:** Uso contínuo e alergias.
-            4. **Hábitos e Família:** Tabagismo, etilismo, histórico familiar.
-            """
-        )
+with st.sidebar:
+    if os.path.exists("logotipo.jpg"):
+        st.image("logotipo.jpg", use_container_width=True)
+    else:
+        st.markdown("## 🧠 AnamnesIA")
+    st.caption("Guia Rápido de Anamnese")
+    
+    st.markdown("---")
+    pagina_selecionada = st.radio(
+        "Navegação",
+        ["🩺 Simulador Clínico", "💡 Enviar Sugestão / Feedback"],
+        label_visibility="collapsed"
+    )
+    
+    st.markdown("---")
+    st.markdown(
+        """
+        **Roteiro sugerido:**
+        1. **Queixa Principal e HDA:** Início, duração, intensidade, irradiação.
+        2. **Antecedentes Pessoais:** Doenças crônicas, cirurgias.
+        3. **Medicações e Alergias:** Uso contínuo e alergias.
+        4. **Hábitos e Família:** Tabagismo, etilismo, histórico familiar.
+        """
+    )
 
+
+# ==============================================================================
+# TELA DE SUGESTÕES / FEEDBACK
+# ==============================================================================
+if pagina_selecionada == "💡 Enviar Sugestão / Feedback":
+    st.markdown(
+        """
+        <div class="hero-banner">
+            <div class="hero-badges">
+                <span class="hero-badge">💡 CANAL DE MELHORIA CONTÍNUA</span>
+                <span class="hero-badge">✨ SUA OPINIÃO IMPORTA</span>
+            </div>
+            <div class="hero-title">
+                Envie sua Sugestão ou <span class="ia-strong">Feedback</span>
+            </div>
+            <div class="hero-subtitle">
+                Ajude a melhorar o AnamnesIA sugerindo novas especialidades, casos clínicos ou melhorias na plataforma.
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    with st.form("form_sugestoes"):
+        nome_usuario = st.text_input("Seu Nome ou Perfil (Opcional)", placeholder="Ex: Estudante de Medicina / Dr(a). Nome...")
+        tipo_feedback = st.selectbox(
+            "Tipo de Sugestão",
+            ["Nova Especialidade Médica", "Novo Caso Clínico / Ideia de Sintoma", "Correção Técnica ou Erro", "Melhoria na Interface / Aplicativo", "Outro"]
+        )
+        mensagem_feedback = st.text_area(
+            "Descreva sua sugestão detalhadamente:",
+            placeholder="Conte-nos o que você gostaria de ver na plataforma ou como podemos melhorá-la...",
+            height=140
+        )
+        enviar_sugestao = st.form_submit_button("📤 Enviar Sugestão", type="primary", use_container_width=True)
+
+    if enviar_sugestao:
+        if not mensagem_feedback.strip():
+            st.warning("⚠️ Por favor, escreva a sua sugestão antes de enviar.")
+        else:
+            # Aqui você pode salvar em arquivo local, banco ou apenas exibir o sucesso para o usuário
+            st.success("🎉 **Sugestão enviada com sucesso!** Muito obrigado por contribuir para a evolução do AnamnesIA.")
+            st.balloons()
+
+
+# ==============================================================================
+# TELA 1: SELEÇÃO DE ESPECIALIDADES (SIMULADOR)
+# ==============================================================================
+elif st.session_state.especialidade_ativa is None:
     # Exibe o logotipo junto com o título e a frase na cor branca no Banner Principal
     logo_html = ""
     if os.path.exists("logotipo.jpg"):
@@ -972,13 +1028,6 @@ elif st.session_state.nivel_ativo is None:
     esp_atual = st.session_state.especialidade_ativa
     info_esp = ESPECIALIDADES[esp_atual]
 
-    with st.sidebar:
-        if os.path.exists("logotipo.jpg"):
-            st.image("logotipo.jpg", use_container_width=True)
-        else:
-            st.markdown("## 🧠 AnamnesIA")
-        st.caption("Guia Rápido de Anamnese")
-
     if st.button("⬅️ Voltar para Todas as Especialidades"):
         st.session_state.especialidade_ativa = None
         st.rerun()
@@ -1029,22 +1078,6 @@ else:
     nivel_atual = st.session_state.nivel_ativo
     info_esp = ESPECIALIDADES[esp_atual]
     dados_caso = st.session_state.caso_atual
-
-    with st.sidebar:
-        if os.path.exists("logotipo.jpg"):
-            st.image("logotipo.jpg", use_container_width=True)
-        else:
-            st.markdown("## 🧠 AnamnesIA")
-        st.caption("Guia Rápido de Anamnese")
-        st.markdown(
-            """
-            **Roteiro sugerido:**
-            1. **Queixa Principal e HDA:** Início, duração, intensidade, irradiação.
-            2. **Antecedentes Pessoais:** Doenças crônicas, cirurgias.
-            3. **Medicações e Alergias:** Uso contínuo e alergias.
-            4. **Hábitos e Família:** Tabagismo, etilismo, histórico familiar.
-            """
-        )
 
     # Barra superior com navegação e botão evidente de Diagnóstico Final
     col_b1, col_b2, col_b3, col_b4 = st.columns([1, 1, 1, 1.35])
