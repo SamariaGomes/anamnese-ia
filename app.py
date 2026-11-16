@@ -396,7 +396,7 @@ def iniciar_consulta_com_nivel(especialidade, nivel):
     st.session_state.messages = [{"role": "assistant", "content": caso["primeira_fala"]}]
 
 
-# Barra Lateral Limpa
+# Barra Lateral (Com o seu logotipo de volta)
 with st.sidebar:
     if os.path.exists("logotipo.jpg"):
         st.image("logotipo.jpg", use_container_width=True)
