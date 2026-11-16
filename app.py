@@ -1,5 +1,6 @@
 import json
 import os
+import time
 import requests
 import streamlit as st
 from dotenv import load_dotenv
@@ -533,7 +534,7 @@ ESPECIALIDADES = {
             "paciente": "Antônio, 67 anos (filha: Paula)",
             "primeira_fala": "Doutor(a), corre aqui! Meu pai tava tomando café agora há pouco e do nada a boca dele entortou e ele não consegue mexer o braço direito!",
             "prompt_sistema": (
-                "Você é Paula, filha de Antônio (67 anos). "
+                "You are Paula, filha de Antônio (67 anos). "
                 "Queixa: início súbito há 40 minutos de desvio de rima labial, disartria e hemiparesia direita. "
                 "Detalhes (só revele se perguntado): tem fibrilação atrial e parou a rivaroxabana há 1 semana; sem trauma craniano. "
                 "REGRAS: Responda em urgência. Só revele o tempo exato (40 min) e suspensão do anticoagulante se perguntada."
@@ -601,7 +602,7 @@ ESPECIALIDADES = {
             "paciente": "Patrícia, 35 anos",
             "primeira_fala": "Doutor(a), tô me sentindo muito fraca, com falta de ar quando subo escada e todo mundo diz que eu tô branca igual papel.",
             "prompt_sistema": (
-                "Você é Patrícia, 35 anos, contadora. "
+                "You are Patrícia, 35 anos, contadora. "
                 "Queixa: fadiga, dispneia aos esforços, tontura e palidez há 3 meses. "
                 "Detalhes (só revele se perguntado): menorragia intensa com coágulos todo mês; vontade de mastigar gelo (pagofagia) e unhas quebradiças; sem alergias. "
                 "REGRAS: Só conte sobre a menstruação intensa e pagofagia se perguntada."
@@ -618,7 +619,7 @@ ESPECIALIDADES = {
             "paciente": "Dona Nair, 79 anos (neto: Bruno)",
             "primeira_fala": "Oi doutor(a), trouxe minha avó porque ela levou um tombo no corredor de casa ontem à noite quando levantou pra ir ao banheiro.",
             "prompt_sistema": (
-                "Você é Bruno, neto de Dona Nair (79 anos). "
+                "You are Bruno, neto de Dona Nair (79 anos). "
                 "Queixa: queda da própria altura ontem à madrugada, sonolência diurna e tontura ao levantar. "
                 "Detalhes (só revele se perguntado): toma 8 remédios por dia, incluindo clonazepam iniciado há 2 semanas para insônia e 2 anti-hipertensivos; sem alergias. "
                 "REGRAS: Só revele o uso recente de clonazepam e a polifarmácia se perguntado sobre medicações."
@@ -855,8 +856,29 @@ if "parecer_preceptor" not in st.session_state:
     st.session_state.parecer_preceptor = None
 
 
-def iniciar_consulta_com_nivel(especialidade, nivel):
+def iniciar_consulta_com_nivel_com_temporizador(especialidade, nivel):
+    # Caixa de aviso bonita com barra de progresso simulando o tempo de geração (aprox 5 segundos)
+    placeholder_status = st.empty()
+    barra_progresso = st.progress(0)
+    
+    etapas = [
+        ("🩺 Acessando diretrizes da especialidade...", 20),
+        ("🧠 Sorteando parâmetros e gravidade do quadro...", 50),
+        ("📋 Estruturando o prontuário e pistas ocultas...", 80),
+        ("✨ Chamando o paciente para o consultório virtual...", 100)
+    ]
+    
+    for texto, progresso in etapas:
+        placeholder_status.info(f"{texto} (Aprox. {max(1, int(5 * (1 - progresso/100)))}s restantes)")
+        barra_progresso.progress(progresso)
+        time.sleep(1.2) # Pausa suave para dar tempo de leitura ao usuário
+        
+    # Executa a geração real do caso pela IA
     caso = criar_caso_por_nivel(especialidade, nivel)
+    
+    placeholder_status.empty()
+    barra_progresso.empty()
+    
     st.session_state.nivel_ativo = nivel
     st.session_state.caso_atual = caso
     st.session_state.parecer_preceptor = None
@@ -1081,8 +1103,8 @@ elif st.session_state.nivel_ativo is None:
                 type="primary",
                 use_container_width=True,
             ):
-                with st.spinner(f"🩺 Preparando prontuário ({chave_nivel}) e chamando o paciente..."):
-                    iniciar_consulta_com_nivel(esp_atual, chave_nivel)
+                # Executa com a barra de progresso e temporizador visual
+                iniciar_consulta_com_nivel_com_temporizador(esp_atual, chave_nivel)
                 st.rerun()
 
 # ==============================================================================
@@ -1090,7 +1112,7 @@ elif st.session_state.nivel_ativo is None:
 # ==============================================================================
 else:
     esp_atual = st.session_state.especialidade_ativa
-    nivel_atual = st.session_state.nivel_ativo
+    nivel_ativo = st.session_state.nivel_ativo
     info_esp = ESPECIALIDADES[esp_atual]
     dados_caso = st.session_state.caso_atual
 
@@ -1113,12 +1135,11 @@ else:
             st.rerun()
     with col_b3:
         if st.button("🎲 Novo Caso", use_container_width=True):
-            with st.spinner("🩺 Gerando um novo paciente neste nível..."):
-                iniciar_consulta_com_nivel(esp_atual, nivel_atual)
+            iniciar_consulta_com_nivel_com_temporizador(esp_atual, nivel_ativo)
             st.rerun()
     with col_b4:
         if st.button("🎓 Enviar Diagnóstico", type="primary", use_container_width=True):
-            abrir_modal_diagnostico(esp_atual, nivel_atual, dados_caso)
+            abrir_modal_diagnostico(esp_atual, nivel_ativo, dados_caso)
 
     # Faixa superior da consulta ativa
     st.markdown(
@@ -1126,7 +1147,7 @@ else:
         <div class="hero-banner" style="padding: 1.3rem 1.8rem; margin-top: 0.5rem;">
             <div class="hero-badges">
                 <span class="hero-badge">{info_esp['icone']} {esp_atual.upper()}</span>
-                <span class="hero-badge">{nivel_atual.upper()}</span>
+                <span class="hero-badge">{nivel_ativo.upper()}</span>
                 <span class="hero-badge">📍 {info_esp['cenario'].upper()}</span>
                 <span class="hero-badge">🧑 PACIENTE: {dados_caso['paciente'].upper()}</span>
             </div>
@@ -1144,8 +1165,7 @@ else:
             c_prox1, c_prox2 = st.columns(2)
             with c_prox1:
                 if st.button("🎲 Sortear Outro Caso neste Nível", type="primary", use_container_width=True):
-                    with st.spinner("🩺 Chamando próximo paciente..."):
-                        iniciar_consulta_com_nivel(esp_atual, nivel_atual)
+                    iniciar_consulta_com_nivel_com_temporizador(esp_atual, nivel_ativo)
                     st.rerun()
             with c_prox2:
                 if st.button("🩺 Escolher Outra Especialidade", use_container_width=True):
@@ -1179,7 +1199,7 @@ else:
 
         instrucao_completa = (
             f"{dados_caso['prompt_sistema']}\n\n"
-            f"Nível de dificuldade da simulação: {nivel_atual}.\n"
+            f"Nível de dificuldade da simulação: {nivel_ativo}.\n"
             f"Contexto: Você iniciou a consulta dizendo: \"{dados_caso['primeira_fala']}\""
         )
 
