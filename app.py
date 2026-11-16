@@ -6,6 +6,7 @@ import streamlit as st
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
+import base64
 
 # 1. Configuração da página (Sidebar colapsada por padrão para ficar limpo)
 st.set_page_config(
@@ -185,7 +186,7 @@ st.markdown(
     }
     [data-testid="stChatMessage"] {
         background-color: #FAF9FC !important;
-        border: 1px solid #E2DEED !important;
+        border: 1.5px solid #E2DEED !important;
         border-left: 4px solid #059669 !important;
         border-radius: 14px !important;
         padding: 1rem 1.2rem !important;
@@ -396,7 +397,7 @@ def iniciar_consulta_com_nivel(especialidade, nivel):
     st.session_state.messages = [{"role": "assistant", "content": caso["primeira_fala"]}]
 
 
-# Barra Lateral (Com o seu logotipo de volta)
+# Barra Lateral (Com o logotipo)
 with st.sidebar:
     if os.path.exists("logotipo.jpg"):
         st.image("logotipo.jpg", use_container_width=True)
@@ -456,14 +457,22 @@ if st.session_state.pagina_atual == "Sugestoes":
                 st.error(f"Erro: {e}")
 
 elif st.session_state.especialidade_ativa is None:
+    logo_html = ""
+    if os.path.exists("logotipo.jpg"):
+        with open("logotipo.jpg", "rb") as f:
+            encoded_logo = base64.b64encode(f.read()).decode()
+            logo_html = f'<img src="data:image/jpeg;base64,{encoded_logo}" style="height: 52px; vertical-align: middle; margin-right: 12px; border-radius: 8px;">'
+
     st.markdown(
-        """
+        f"""
         <div class="hero-banner">
             <div class="hero-badges">
                 <span class="hero-badge">✨ PACIENTE VIRTUAL</span>
                 <span class="hero-badge">🩺 24 ESPECIALIDADES</span>
             </div>
-            <div class="hero-title">Anamnes<span class="ia-strong">IA</span></div>
+            <div class="hero-title">
+                {logo_html} Anamnes<span class="ia-strong">IA</span>
+            </div>
             <div class="hero-subtitle">Simulador clínico inteligente para treinamento médico.</div>
         </div>
         """,
