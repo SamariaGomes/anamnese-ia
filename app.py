@@ -1,13 +1,12 @@
 import json
 import os
-import time
 import requests
 import streamlit as st
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
 
-# 1. Configuração da página
+# 1. Configuração da página (Sidebar colapsada por padrão para ficar limpo)
 st.set_page_config(
     page_title="AnamnesIA — Simulador Clínico",
     page_icon="🩺",
@@ -483,7 +482,7 @@ ESPECIALIDADES = {
             "paciente": "Beatriz, 32 anos (34 semanas)",
             "primeira_fala": "Doutor(a), tô grávida de 34 semanas e vim porque hoje acordei com uma dor de cabeça forte na nuca e minha vista tá meio embaralhada.",
             "prompt_sistema": (
-                "Você é Beatriz, 32 anos, primigesta de 34 semanas. "
+                "You are Beatriz, 32 anos, primigesta de 34 semanas. "
                 "Queixa: cefaleia intensa há 4 horas, escotomas visuais e dor na boca do estômago (epigastralgia). "
                 "Detalhes (só revele se perguntado): edema súbito em mãos e rosto há 2 dias; movimentação fetal presente; sem alergias. "
                 "REGRAS: Responda preocupada com o bebê. Só conte sobre epigastralgia e edema facial se perguntada."
@@ -534,7 +533,7 @@ ESPECIALIDADES = {
             "paciente": "Antônio, 67 anos (filha: Paula)",
             "primeira_fala": "Doutor(a), corre aqui! Meu pai tava tomando café agora há pouco e do nada a boca dele entortou e ele não consegue mexer o braço direito!",
             "prompt_sistema": (
-                "Você é Paula, filha de Antônio (67 anos). "
+                "You are Paula, filha de Antônio (67 anos). "
                 "Queixa: início súbito há 40 minutos de desvio de rima labial, disartria e hemiparesia direita. "
                 "Detalhes (só revele se perguntado): tem fibrilação atrial e parou a rivaroxabana há 1 semana; sem trauma craniano. "
                 "REGRAS: Responda em urgência. Só revele o tempo exato (40 min) e suspensão do anticoagulante se perguntada."
@@ -619,7 +618,7 @@ ESPECIALIDADES = {
             "paciente": "Dona Nair, 79 anos (neto: Bruno)",
             "primeira_fala": "Oi doutor(a), trouxe minha avó porque ela levou um tombo no corredor de casa ontem à noite quando levantou pra ir ao banheiro.",
             "prompt_sistema": (
-                "You are Bruno, neto de Dona Nair (79 anos). "
+                "Você é Bruno, neto de Dona Nair (79 anos). "
                 "Queixa: queda da própria altura ontem à madrugada, sonolência diurna e tontura ao levantar. "
                 "Detalhes (só revele se perguntado): toma 8 remédios por dia, incluindo clonazepam iniciado há 2 semanas para insônia e 2 anti-hipertensivos; sem alergias. "
                 "REGRAS: Só revele o uso recente de clonazepam e a polifarmácia se perguntado sobre medicações."
@@ -858,26 +857,9 @@ if "pagina_atual" not in st.session_state:
     st.session_state.pagina_atual = "Simulador"
 
 
-def iniciar_consulta_com_nivel_com_temporizador(especialidade, nivel):
-    placeholder_status = st.empty()
-    barra_progresso = st.progress(0)
-    
-    etapas = [
-        ("🩺 Acessando diretrizes da especialidade...", 20),
-        ("🧠 Sorteando parâmetros e gravidade do quadro...", 50),
-        ("📋 Estruturando o prontuário e pistas ocultas...", 80),
-        ("✨ Chamando o paciente para o consultório virtual...", 100)
-    ]
-    
-    for texto, progresso in etapas:
-        placeholder_status.info(f"{texto} (Aprox. {max(1, int(5 * (1 - progresso/100)))}s restantes)")
-        barra_progresso.progress(progresso)
-        time.sleep(1.2)
-        
-    caso = criar_caso_por_nivel(especialidade, nivel)
-    
-    placeholder_status.empty()
-    barra_progresso.empty()
+def iniciar_consulta_com_nivel(especialidade, nivel):
+    with st.spinner("🩺 Conectando ao consultório virtual e gerando o caso clínico..."):
+        caso = criar_caso_por_nivel(especialidade, nivel)
     
     st.session_state.nivel_ativo = nivel
     st.session_state.caso_atual = caso
@@ -891,7 +873,7 @@ def iniciar_consulta_com_nivel_com_temporizador(especialidade, nivel):
 
 
 # ==============================================================================
-# MENU LATERAL COM BOTÕES DE DESTAQUE (Fácil identificação)
+# BARRA LATERAL LIMPA (Apenas Logotipo e Guia Rápido, sem menus escondidos)
 # ==============================================================================
 with st.sidebar:
     if os.path.exists("logotipo.jpg"):
@@ -899,17 +881,6 @@ with st.sidebar:
     else:
         st.markdown("## 🧠 AnamnesIA")
     st.caption("Guia Rápido de Anamnese")
-    
-    st.markdown("---")
-    
-    # Botões de navegação bem aparentes e fáceis de identificar
-    if st.button("🩺 Ir para o Simulador Clínico", type="primary" if st.session_state.pagina_atual == "Simulador" else "secondary", use_container_width=True):
-        st.session_state.pagina_atual = "Simulador"
-        st.rerun()
-        
-    if st.button("💡 Enviar Sugestão / Feedback", type="primary" if st.session_state.pagina_atual == "Sugestoes" else "secondary", use_container_width=True):
-        st.session_state.pagina_atual = "Sugestoes"
-        st.rerun()
     
     st.markdown("---")
     st.markdown(
@@ -924,7 +895,23 @@ with st.sidebar:
 
 
 # ==============================================================================
-# TELA DE SUGESTÕES / FEEDBACK
+# NAVEGAÇÃO PRINCIPAL VISÍVEL NO TOPO DA TELA (Sem abas ocultas)
+# ==============================================================================
+col_nav1, col_nav2 = st.columns([1, 1])
+with col_nav1:
+    if st.button("🩺 Simulador Clínico", type="primary" if st.session_state.pagina_atual == "Simulador" else "secondary", use_container_width=True):
+        st.session_state.pagina_atual = "Simulador"
+        st.rerun()
+with col_nav2:
+    if st.button("💡 Enviar Sugestão / Feedback", type="primary" if st.session_state.pagina_atual == "Sugestoes" else "secondary", use_container_width=True):
+        st.session_state.pagina_atual = "Sugestoes"
+        st.rerun()
+
+st.markdown("---")
+
+
+# ==============================================================================
+# TELA DE SUGESTÕES / FEEDBACK (Visível diretamente na escolha)
 # ==============================================================================
 if st.session_state.pagina_atual == "Sugestoes":
     st.markdown(
@@ -1107,7 +1094,7 @@ elif st.session_state.nivel_ativo is None:
                 type="primary",
                 use_container_width=True,
             ):
-                iniciar_consulta_com_nivel_com_temporizador(esp_atual, chave_nivel)
+                iniciar_consulta_com_nivel(esp_atual, chave_nivel)
                 st.rerun()
 
 # ==============================================================================
@@ -1138,7 +1125,7 @@ else:
             st.rerun()
     with col_b3:
         if st.button("🎲 Novo Caso", use_container_width=True):
-            iniciar_consulta_com_nivel_com_temporizador(esp_atual, nivel_ativo)
+            iniciar_consulta_com_nivel(esp_atual, nivel_ativo)
             st.rerun()
     with col_b4:
         if st.button("🎓 Enviar Diagnóstico", type="primary", use_container_width=True):
@@ -1168,7 +1155,7 @@ else:
             c_prox1, c_prox2 = st.columns(2)
             with c_prox1:
                 if st.button("🎲 Sortear Outro Caso neste Nível", type="primary", use_container_width=True):
-                    iniciar_consulta_com_nivel_com_temporizador(esp_atual, nivel_ativo)
+                    iniciar_consulta_com_nivel(esp_atual, nivel_ativo)
                     st.rerun()
             with c_prox2:
                 if st.button("🩺 Escolher Outra Especialidade", use_container_width=True):
