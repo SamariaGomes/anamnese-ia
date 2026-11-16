@@ -37,7 +37,7 @@ MODELOS_FLASH = [
     "gemini-2.0-flash",
 ]
 
-# 3. Identidade Visual: Branco, Roxo Lilás Suave e Verde Esmeralda Vibrante
+# 3. Identidade Visual: Branco, Roxo Lilás e Verde Esmeralda Super Forte (#00E676)
 st.markdown(
     """
     <style>
@@ -62,14 +62,14 @@ st.markdown(
         color: #3F3356 !important;
     }
 
-    /* Banner Hero em Degradê Roxo Claro -> Verde Esmeralda Intenso */
+    /* Banner Hero em Degradê Roxo Claro -> Verde Esmeralda Forte */
     .hero-banner {
-        background: linear-gradient(135deg, #8B5CF6 0%, #A78BFA 45%, #00B06B 100%);
+        background: linear-gradient(135deg, #8B5CF6 0%, #A78BFA 45%, #00C853 100%);
         padding: 1.75rem 2rem;
         border-radius: 18px;
         color: #FFFFFF !important;
         margin-bottom: 1.4rem;
-        box-shadow: 0 10px 26px rgba(0, 176, 107, 0.22);
+        box-shadow: 0 10px 26px rgba(0, 200, 83, 0.25);
         border: 1px solid rgba(255, 255, 255, 0.45);
     }
     .hero-badges {
@@ -90,14 +90,21 @@ st.markdown(
         text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
     }
     .hero-title {
-        font-size: 2rem;
+        font-size: 2.1rem;
         font-weight: 800;
         margin: 0 0 0.35rem 0;
         color: #FFFFFF !important;
         text-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+        display: flex;
+        align-items: center;
+        gap: 12px;
     }
-    .hero-title span {
-        color: #E6FFFA !important;
+    .hero-title .ia-strong {
+        color: #00E676 !important;
+        background: #FFFFFF;
+        padding: 0px 8px;
+        border-radius: 6px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
     }
     .hero-subtitle {
         font-size: 0.98rem;
@@ -106,7 +113,7 @@ st.markdown(
         margin: 0;
     }
 
-    /* Cards Brancos com Borda Lilás Clara e Destaque Verde Vibrante */
+    /* Cards Brancos com Borda Lilás Clara e Destaque Verde Forte */
     .spec-card, .level-card {
         background-color: #FFFFFF;
         border: 1.5px solid #DDD6FE;
@@ -120,9 +127,9 @@ st.markdown(
     }
     .spec-card:hover, .level-card:hover {
         background-color: #FAF7FF;
-        border-color: #00B06B;
-        border-top-color: #00B06B;
-        box-shadow: 0 8px 22px rgba(0, 176, 107, 0.18);
+        border-color: #00E676;
+        border-top-color: #00E676;
+        box-shadow: 0 8px 22px rgba(0, 230, 118, 0.2);
         transform: translateY(-2px);
     }
     .level-card {
@@ -136,9 +143,9 @@ st.markdown(
     }
     .spec-scenario {
         display: inline-block;
-        background-color: #E6FFFA;
-        color: #047857 !important;
-        border: 1px solid #A7F3D0;
+        background-color: #E8F5E9;
+        color: #00C853 !important;
+        border: 1px solid #A5D6A7;
         border-radius: 999px;
         padding: 2px 10px;
         font-size: 0.78rem;
@@ -151,23 +158,23 @@ st.markdown(
         line-height: 1.48;
     }
 
-    /* Botões Principais (Verde Esmeralda Mais Forte e Vibrante) */
+    /* Botões Principais (Verde Esmeralda Super Forte #00E676) */
     button[kind="primary"], [data-testid="baseButton-primary"] {
-        background: linear-gradient(135deg, #00B06B 0%, #059669 100%) !important;
-        color: #FFFFFF !important;
+        background: linear-gradient(135deg, #00C853 0%, #00E676 100%) !important;
+        color: #0F172A !important;
         border: none !important;
         border-radius: 10px !important;
-        font-weight: 700 !important;
-        box-shadow: 0 4px 12px rgba(0, 176, 107, 0.3) !important;
+        font-weight: 800 !important;
+        box-shadow: 0 4px 14px rgba(0, 230, 118, 0.35) !important;
         transition: all 0.2s ease !important;
     }
     button[kind="primary"]:hover, [data-testid="baseButton-primary"]:hover {
-        background: linear-gradient(135deg, #059669 100%, #047857 100%) !important;
-        box-shadow: 0 6px 16px rgba(0, 176, 107, 0.4) !important;
+        background: linear-gradient(135deg, #00B045 0%, #00C853 100%) !important;
+        box-shadow: 0 6px 18px rgba(0, 230, 118, 0.45) !important;
         transform: translateY(-1px);
     }
     button[kind="primary"] p, [data-testid="baseButton-primary"] p {
-        color: #FFFFFF !important;
+        color: #0F172A !important;
     }
 
     /* Botões Secundários */
@@ -196,15 +203,15 @@ st.markdown(
         border-radius: 10px !important;
     }
     [data-testid="stTextInput"] input:focus, [data-testid="stTextArea"] textarea:focus {
-        border-color: #00B06B !important;
-        box-shadow: 0 0 0 2px rgba(0, 176, 107, 0.2) !important;
+        border-color: #00E676 !important;
+        box-shadow: 0 0 0 2px rgba(0, 230, 118, 0.25) !important;
     }
 
     /* Mensagens do Chat */
     [data-testid="stChatMessage"] {
         background-color: #FCFAFF !important;
         border: 1px solid #E9D5FF !important;
-        border-left: 4px solid #00B06B !important;
+        border-left: 4px solid #00E676 !important;
         border-radius: 14px !important;
         padding: 1rem 1.2rem !important;
         margin-bottom: 0.75rem !important;
@@ -796,7 +803,7 @@ Comente se a conduta sugerida pelo estudante está adequada ou o que deveria ser
     return gerar_resposta_ia(contents, prompt_preceptor, temperatura=0.3)
 
 
-# 7. Janela Modal para Envio do Diagnóstico Final (fora da conversa)
+# 7. Janela Modal para Envio do Diagnóstico Final
 @st.dialog("🎓 Encerrar Consulta e Enviar Diagnóstico")
 def abrir_modal_diagnostico(esp_atual, nivel_atual, dados_caso):
     st.caption(f"Paciente: **{dados_caso['paciente']}** • {esp_atual} ({nivel_atual})")
@@ -874,8 +881,8 @@ if st.session_state.especialidade_ativa is None:
                 <span class="hero-badge">🩺 {len(ESPECIALIDADES)} ESPECIALIDADES</span>
                 <span class="hero-badge">🎚️ 3 NÍVEIS DE DIFICULDADE</span>
             </div>
-            <div class="hero-title" style="display: flex; align-items: center; gap: 12px;">
-                <span>🩺 Anamnes<span>IA</span></span>
+            <div class="hero-title">
+                🧠 Anamnes<span class="ia-strong">IA</span>
             </div>
             <p class="hero-subtitle">
                 Escolha uma especialidade médica abaixo e depois selecione o nível de dificuldade (Fácil, Médio ou Difícil) para iniciar seu atendimento.
@@ -952,7 +959,9 @@ elif st.session_state.nivel_ativo is None:
                 <span class="hero-badge">{info_esp['icone']} {esp_atual.upper()}</span>
                 <span class="hero-badge">📍 {info_esp['cenario'].upper()}</span>
             </div>
-            <div class="hero-title" style="font-size: 1.75rem;">2️⃣ Selecione o Nível da <span>Anamnese</span></div>
+            <div class="hero-title" style="font-size: 1.75rem;">
+                🧠 2️⃣ Selecione o Nível da <span class="ia-strong">Anamnese</span>
+            </div>
             <p class="hero-subtitle">
                 Cada nível gera um caso clínico inédito ajustado à complexidade das pistas, comorbidades e comportamento do paciente.
             </p>
