@@ -8,12 +8,12 @@ from google import genai
 from google.genai import types
 import base64
 
-# 1. Configuração da página (Sidebar colapsada por padrão para ficar limpo)
+# 1. Configuração da página (Sidebar aberta para facilitar o acesso ao botão)
 st.set_page_config(
     page_title="AnamnesIA — Simulador Clínico",
     page_icon="🩺",
     layout="wide",
-    initial_sidebar_state="collapsed",
+    initial_sidebar_state="expanded",
 )
 
 # 2. Carregamento seguro da chave de API (.env local ou Secrets na nuvem)
@@ -54,6 +54,7 @@ st.markdown(
     [data-testid="stSidebar"] {
         background-color: #FFFFFF;
         border-right: 1.5px solid #E2DEED;
+        padding-top: 1rem;
     }
     h1, h2, h3, h4 {
         color: #6D28D9 !important;
@@ -152,7 +153,7 @@ st.markdown(
         line-height: 1.48;
     }
     
-    /* Estilização especial para o botão de Enviar Diagnóstico (Destaque em Laranja/Âmbar Vibrante) */
+    /* Botão de Enviar Diagnóstico em Destaque Forte (Âmbar/Laranja) */
     div.stButton > button[kind="primary"] {
         background: linear-gradient(135deg, #D97706 0%, #B45309 100%) !important;
         color: #FFFFFF !important;
@@ -166,8 +167,6 @@ st.markdown(
         box-shadow: 0 6px 20px rgba(217, 119, 6, 0.6) !important;
         transform: translateY(-1px);
     }
-
-    /* Outros botões normais secundários */
     button[kind="secondary"], [data-testid="baseButton-secondary"] {
         background-color: #F4F1FA !important;
         color: #6D28D9 !important;
@@ -399,14 +398,28 @@ def iniciar_consulta_com_nivel(especialidade, nivel):
     st.session_state.messages = [{"role": "assistant", "content": caso["primeira_fala"]}]
 
 
-# Barra Lateral (Com o logotipo)
+# ==============================================================================
+# BARRA LATERAL DINÂMICA (Acompanha a consulta e fixa o botão de Enviar Diagnóstico)
+# ==============================================================================
 with st.sidebar:
     if os.path.exists("logotipo.jpg"):
         st.image("logotipo.jpg", use_container_width=True)
     else:
         st.markdown("## 🧠 AnamnesIA")
+    
+    # Se estivermos dentro da consulta ativa, mostramos o botão de Enviar Diagnóstico na barra lateral
+    if st.session_state.especialidade_ativa and st.session_state.nivel_ativo and st.session_state.caso_atual:
+        st.markdown("---")
+        st.markdown("### 🎯 Ações da Consulta")
+        st.info(f"**Paciente:** {st.session_state.caso_atual['paciente']}")
+        
+        # Botão super visível que acompanha a tela inteira na barra lateral
+        if st.button("🎓 Enviar Diagnóstico Final", type="primary", use_container_width=True):
+            abrir_modal_diagnostico(st.session_state.especialidade_ativa, st.session_state.nivel_ativo, st.session_state.caso_atual)
+        
+        st.markdown("---")
+
     st.caption("Guia Rápido de Anamnese")
-    st.markdown("---")
     st.markdown(
         """
         **Roteiro sugerido:**
@@ -548,8 +561,8 @@ else:
     info_esp = ESPECIALIDADES[esp_atual]
     dados_caso = st.session_state.caso_atual
 
-    # Layout de botões superiores com destaque máximo no Diagnóstico Final (tipo="primary")
-    col_b1, col_b2, col_b3, col_b4 = st.columns([1, 1, 1, 1.35])
+    # Botões superiores na tela de atendimento (Especialidades, Trocar Nível, Novo Caso)
+    col_b1, col_b2, col_b3 = st.columns([1, 1, 1])
     with col_b1:
         if st.button("⬅️ Especialidades", use_container_width=True):
             st.session_state.especialidade_ativa = None
@@ -569,10 +582,6 @@ else:
         if st.button("🎲 Novo Caso", use_container_width=True):
             iniciar_consulta_com_nivel(esp_atual, nivel_ativo)
             st.rerun()
-    with col_b4:
-        # Botão principal com cor âmbar/ouro brilhante muito evidente na tela de atendimento
-        if st.button("🎓 Enviar Diagnóstico Final", type="primary", use_container_width=True):
-            abrir_modal_diagnostico(esp_atual, nivel_ativo, dados_caso)
 
     st.markdown(
         f"""
@@ -628,9 +637,10 @@ else:
 
         with st.chat_message("assistant"):
             with st.spinner("O paciente está respondendo..."):
+                text_response = ""
                 try:
-                    resposta_ia = gerar_resposta_ia(contents, instrucao_completa, temperatura=0.8)
-                    st.markdown(resposta_ia)
-                    st.session_state.messages.append({"role": "assistant", "content": resposta_ia})
+                    text_response = gerar_resposta_ia(contents, instrucao_completa, temperatura=0.8)
+                    st.markdown(text_response)
+                    st.session_state.messages.append({"role": "assistant", "content": text_response})
                 except Exception as e:
                     st.error(f"Erro ao responder: {e}")
