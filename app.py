@@ -103,15 +103,6 @@ st.markdown(
         font-size: 0.92rem;
         line-height: 1.45;
     }
-    .diag-callout {
-        background: rgba(18, 130, 124, 0.10);
-        border-left: 4px solid #12827c;
-        padding: 0.75rem 1rem;
-        border-radius: 8px;
-        margin-top: 1rem;
-        margin-bottom: 0.5rem;
-        font-size: 0.95rem;
-    }
     </style>
     """,
     unsafe_allow_html=True,
@@ -685,7 +676,47 @@ Comente se a conduta sugerida pelo estudante está adequada ou o que deveria ser
     return gerar_resposta_ia(contents, prompt_preceptor, temperatura=0.3)
 
 
-# 7. Gerenciamento de Estado da Navegação (3 Etapas: Especialidade -> Nível -> Consultório)
+# 7. Janela Modal para Envio do Diagnóstico Final (fora da conversa)
+@st.dialog("🎓 Encerrar Consulta e Enviar Diagnóstico")
+def abrir_modal_diagnostico(esp_atual, nivel_atual, dados_caso):
+    st.caption(f"Paciente: **{dados_caso['paciente']}** • {esp_atual} ({nivel_atual})")
+    with st.form("form_diagnostico_modal"):
+        hipotese = st.text_input(
+            "1. Qual é a sua Hipótese Diagnóstica principal?",
+            placeholder="Ex: Infarto Agudo do Miocárdio, Crise de Pânico, Apendicite Aguda...",
+        )
+        conduta = st.text_area(
+            "2. Qual é a sua Conduta Inicial (exames, medicações ou encaminhamento)?",
+            placeholder="Ex: Solicitar ECG em 10 min, monitorização, analgesia, exames laboratoriais...",
+            height=90,
+        )
+        enviar_diag = st.form_submit_button(
+            "✅ Confirmar e Ver Nota do Preceptor",
+            type="primary",
+            use_container_width=True,
+        )
+
+    if enviar_diag:
+        if not hipotese.strip():
+            st.warning("⚠️ Digite sua hipótese diagnóstica antes de enviar para o Preceptor.")
+        else:
+            with st.spinner("🩺 O Preceptor Virtual está avaliando toda a sua entrevista e seu diagnóstico..."):
+                try:
+                    resultado = avaliar_consulta(
+                        esp_atual,
+                        nivel_atual,
+                        dados_caso,
+                        st.session_state.messages,
+                        hipotese,
+                        conduta,
+                    )
+                    st.session_state.parecer_preceptor = resultado
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Erro ao gerar avaliação do Preceptor: {e}")
+
+
+# 8. Gerenciamento de Estado da Navegação (3 Etapas: Especialidade -> Nível -> Consultório)
 if "especialidade_ativa" not in st.session_state:
     st.session_state.especialidade_ativa = None
 if "nivel_ativo" not in st.session_state:
@@ -832,7 +863,7 @@ elif st.session_state.nivel_ativo is None:
                 st.rerun()
 
 # ==============================================================================
-# TELA 3: CONSULTÓRIO VIRTUAL (CHAT + DIAGNÓSTICO FINAL VISÍVEL NA TELA)
+# TELA 3: CONSULTÓRIO VIRTUAL (CHAT LIMPO + BOTÃO DE DIAGNÓSTICO NO TOPO)
 # ==============================================================================
 else:
     esp_atual = st.session_state.especialidade_ativa
@@ -853,8 +884,8 @@ else:
             """
         )
 
-    # Barra de ações rápida no topo da tela principal (funciona no PC e no celular)
-    col_b1, col_b2, col_b3 = st.columns(3)
+    # Barra superior com navegação e botão evidente de Diagnóstico Final (fora do chat)
+    col_b1, col_b2, col_b3, col_b4 = st.columns([1, 1, 1, 1.35])
     with col_b1:
         if st.button("⬅️ Especialidades", use_container_width=True):
             st.session_state.especialidade_ativa = None
@@ -871,10 +902,13 @@ else:
             st.session_state.parecer_preceptor = None
             st.rerun()
     with col_b3:
-        if st.button("🎲 Novo Caso (Mesmo Nível)", use_container_width=True):
+        if st.button("🎲 Novo Caso", use_container_width=True):
             with st.spinner("🩺 Gerando um novo paciente neste nível..."):
                 iniciar_consulta_com_nivel(esp_atual, nivel_atual)
             st.rerun()
+    with col_b4:
+        if st.button("🎓 Enviar Diagnóstico", type="primary", use_container_width=True):
+            abrir_modal_diagnostico(esp_atual, nivel_atual, dados_caso)
 
     # Faixa superior da consulta ativa
     st.markdown(
@@ -888,7 +922,7 @@ else:
             </div>
             <div class="hero-title" style="font-size: 1.6rem;">{dados_caso.get('titulo_caso', 'Consultório Virtual — AnamnesIA')}</div>
             <p class="hero-subtitle">
-                Converse com o paciente para investigar os sintomas. Quando estiver pronto, envie seu diagnóstico final logo abaixo do chat.
+                Converse com o paciente abaixo para investigar os sintomas. Quando concluir a anamnese, clique em <strong>🎓 Enviar Diagnóstico</strong> no topo da tela.
             </p>
         </div>
         """,
@@ -915,56 +949,10 @@ else:
                     st.session_state.parecer_preceptor = None
                     st.rerun()
 
-    # Histórico da conversa
+    # Histórico limpo da conversa
     for message in st.session_state.messages:
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
-
-    # Área de Diagnóstico Final diretamente na tela principal (acima do chat_input)
-    st.markdown(
-        """
-        <div class="diag-callout">
-            🎓 <strong>Já coletou informações suficientes?</strong> Abra a caixa abaixo para enviar seu diagnóstico final e receber a nota do Preceptor.
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    with st.expander("🎓 ENVIAR DIAGNÓSTICO FINAL E CONDUTA (CLIQUE AQUI)", expanded=False):
-        with st.form("form_diagnostico_principal"):
-            hipotese = st.text_input(
-                "1. Qual é a sua Hipótese Diagnóstica principal?",
-                placeholder="Ex: Infarto Agudo do Miocárdio, Crise de Pânico, Apendicite Aguda...",
-            )
-            conduta = st.text_area(
-                "2. Qual é a sua Conduta Inicial (exames, medicações ou encaminhamento)?",
-                placeholder="Ex: Solicitar ECG em 10 min, monitorização, analgesia, exames laboratoriais...",
-                height=85,
-            )
-            enviar_diag = st.form_submit_button(
-                "✅ Finalizar Consulta e Ver Nota do Preceptor",
-                type="primary",
-                use_container_width=True,
-            )
-
-        if enviar_diag:
-            if not hipotese.strip():
-                st.warning("⚠️ Digite sua hipótese diagnóstica antes de enviar para o Preceptor.")
-            else:
-                with st.spinner("🩺 O Preceptor Virtual está avaliando toda a sua entrevista e seu diagnóstico..."):
-                    try:
-                        resultado = avaliar_consulta(
-                            esp_atual,
-                            nivel_atual,
-                            dados_caso,
-                            st.session_state.messages,
-                            hipotese,
-                            conduta,
-                        )
-                        st.session_state.parecer_preceptor = resultado
-                        st.rerun()
-                    except Exception as e:
-                        st.error(f"Erro ao gerar avaliação do Preceptor: {e}")
 
     # Caixa de digitação do chat
     if prompt := st.chat_input("Digite sua pergunta de anamnese para o paciente..."):
