@@ -873,6 +873,32 @@ def iniciar_consulta_com_nivel(especialidade, nivel):
 # TELA 1: SELEÇÃO DE ESPECIALIDADES
 # ==============================================================================
 if st.session_state.especialidade_ativa is None:
+    # Exibe o logotipo na barra lateral
+    with st.sidebar:
+        if os.path.exists("logo.png"):
+            st.image("logo.png", use_container_width=True)
+        else:
+            st.markdown("## 🧠 AnamnesIA")
+        st.caption("Guia Rápido de Anamnese")
+        st.markdown(
+            """
+            **Roteiro sugerido:**
+            1. **Queixa Principal e HDA:** Início, duração, intensidade, irradiação.
+            2. **Antecedentes Pessoais:** Doenças crônicas, cirurgias.
+            3. **Medicações e Alergias:** Uso contínuo e alergias.
+            4. **Hábitos e Família:** Tabagismo, etilismo, histórico familiar.
+            """
+        )
+
+    # Exibe o logotipo junto com o título no Banner Principal
+    logo_html = ""
+    if os.path.exists("logo.png"):
+        import base64
+        with open("logo.png", "rb") as f:
+            data = f.read()
+            encoded = base64.b64encode(data).decode()
+            logo_html = f'<img src="data:image/png;base64,{encoded}" style="height: 55px; vertical-align: middle; margin-right: 12px; border-radius: 8px;">'
+
     st.markdown(
         f"""
         <div class="hero-banner">
@@ -882,7 +908,7 @@ if st.session_state.especialidade_ativa is None:
                 <span class="hero-badge">🎚️ 3 NÍVEIS DE DIFICULDADE</span>
             </div>
             <div class="hero-title">
-                🧠 Anamnes<span class="ia-strong">IA</span>
+                {logo_html} Anamnes<span class="ia-strong">IA</span>
             </div>
             <p class="hero-subtitle">
                 Escolha uma especialidade médica abaixo e depois selecione o nível de dificuldade (Fácil, Médio ou Difícil) para iniciar seu atendimento.
@@ -948,6 +974,13 @@ elif st.session_state.nivel_ativo is None:
     esp_atual = st.session_state.especialidade_ativa
     info_esp = ESPECIALIDADES[esp_atual]
 
+    with st.sidebar:
+        if os.path.exists("logo.png"):
+            st.image("logo.png", use_container_width=True)
+        else:
+            st.markdown("## 🧠 AnamnesIA")
+        st.caption("Guia Rápido de Anamnese")
+
     if st.button("⬅️ Voltar para Todas as Especialidades"):
         st.session_state.especialidade_ativa = None
         st.rerun()
@@ -960,7 +993,7 @@ elif st.session_state.nivel_ativo is None:
                 <span class="hero-badge">📍 {info_esp['cenario'].upper()}</span>
             </div>
             <div class="hero-title" style="font-size: 1.75rem;">
-                🧠 2️⃣ Selecione o Nível da <span class="ia-strong">Anamnese</span>
+                2️⃣ Selecione o Nível da <span class="ia-strong">Anamnese</span>
             </div>
             <p class="hero-subtitle">
                 Cada nível gera um caso clínico inédito ajustado à complexidade das pistas, comorbidades e comportamento do paciente.
@@ -1003,14 +1036,17 @@ else:
     dados_caso = st.session_state.caso_atual
 
     with st.sidebar:
-        st.markdown("## 🧠 AnamnesIA")
+        if os.path.exists("logo.png"):
+            st.image("logo.png", use_container_width=True)
+        else:
+            st.markdown("## 🧠 AnamnesIA")
         st.caption("Guia Rápido de Anamnese")
         st.markdown(
             """
             **Roteiro sugerido:**
-            1. **Queixa Principal e HDA:** Início, duração, intensidade, irradiação, fatores de melhora/piora.
-            2. **Antecedentes Pessoais:** Doenças crônicas, cirurgias, internações.
-            3. **Medicações e Alergias:** Uso contínuo e alergias a remédios.
+            1. **Queixa Principal e HDA:** Início, duração, intensidade, irradiação.
+            2. **Antecedentes Pessoais:** Doenças crônicas, cirurgias.
+            3. **Medicações e Alergias:** Uso contínuo e alergias.
             4. **Hábitos e Família:** Tabagismo, etilismo, histórico familiar.
             """
         )
@@ -1069,7 +1105,7 @@ else:
             with c_prox1:
                 if st.button("🎲 Sortear Outro Caso neste Nível", type="primary", use_container_width=True):
                     with st.spinner("🩺 Chamando próximo paciente..."):
-                        iniciar_consulta_com_nivel(esp_atual, nivel_atual)
+                        iniciar_consulta_com_nested = iniciar_consulta_com_nivel(esp_atual, nivel_atual)
                     st.rerun()
             with c_prox2:
                 if st.button("🩺 Escolher Outra Especialidade", use_container_width=True):
